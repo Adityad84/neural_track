@@ -54,6 +54,26 @@ class DefectResponse(DefectCreate):
     class Config:
         from_attributes = True
 
+def normalize_severity(severity_str):
+    """
+    Normalize severity to one of: Low, High, Critical
+    """
+    if not severity_str:
+        return "High"  # Default to High for safety
+    
+    severity_lower = str(severity_str).lower().strip()
+    
+    if severity_lower in ["critical", "severe", "very high", "urgent"]:
+        return "Critical"
+    elif severity_lower in ["high", "significant", "medium-high"]:
+        return "High"
+    elif severity_lower in ["low", "minor", "minimal"]:
+        return "Low"
+    elif severity_lower in ["medium", "moderate"]:
+        return "High"  # Treat medium as High for safety
+    else:
+        return "High"  # Default to High for unknown values
+
 @app.post("/analyze", response_model=DefectResponse)
 async def analyze_defect(defect: DefectCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
@@ -65,7 +85,12 @@ async def analyze_defect(defect: DefectCreate, background_tasks: BackgroundTasks
     location_str = f"Lat: {defect.latitude}, Lon: {defect.longitude}, KM: {defect.chainage}, Station: {defect.nearest_station}"
     
     # 1. Gemini Analysis
+    print(f"Analyzing defect: {defect.defect_type} with confidence {defect.confidence}%")
     analysis = gemini_service.analyze_defect(defect.defect_type, defect.confidence, location_str)
+    
+    # Normalize severity
+    severity = normalize_severity(analysis.get("severity", "High"))
+    print(f"Severity determined: {severity}")
     
     # 2. Save to DB
     db_defect = Defect(
@@ -76,17 +101,20 @@ async def analyze_defect(defect: DefectCreate, background_tasks: BackgroundTasks
         longitude=defect.longitude,
         chainage=defect.chainage,
         nearest_station=defect.nearest_station,
-        severity=analysis.get("severity", "Medium"),
-        root_cause=analysis.get("root_cause", ""),
-        action_required=analysis.get("immediate_action", ""),
-        resolution_steps=analysis.get("resolution_steps", "")
+        severity=severity,
+        root_cause=analysis.get("root_cause", "Analysis pending"),
+        action_required=analysis.get("immediate_action", "Awaiting assessment"),
+        resolution_steps=analysis.get("resolution_steps", "Pending detailed analysis")
     )
     db.add(db_defect)
     db.commit()
     db.refresh(db_defect)
     
+    print(f"Defect saved to DB with ID: {db_defect.id}, Severity: {db_defect.severity}")
+    
     # 3. Background Task for Email
-    if db_defect.severity.lower() == "critical":
+    if db_defect.severity == "Critical":
+        print(f"Critical defect detected! Sending email alert...")
         defect_dict = {
             "defect_type": db_defect.defect_type,
             "confidence": db_defect.confidence,
