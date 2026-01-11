@@ -9,3 +9,4 @@ passlib[argon2]
 python-jose[cryptography]
 python-multipart
 openpyxl
+opencv-python
