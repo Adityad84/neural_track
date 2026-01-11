@@ -12,3 +12,4 @@ openpyxl
 opencv-python
 pytz
 psycopg2-binary
+pillow
