@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { Search, MapPin, AlertTriangle, Check, Clock, X, CheckCircle, Info, Download } from 'lucide-react';
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const Reports = ({ defects }) => {
     const [searchTerm, setSearchTerm] = useState('');
