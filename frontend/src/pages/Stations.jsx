@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Edit2, Trash2, X, Save, MapPin } from 'lucide-react';
@@ -12,7 +12,9 @@ const Stations = () => {
     const [editingStation, setEditingStation] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const { token } = useAuth();
+    const { token, user } = useAuth();
+    const [deletingId, setDeletingId] = useState(null);
+    const scrollContainerRef = useRef(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -140,19 +142,37 @@ const Stations = () => {
             return;
         }
 
+        console.log(`[STATIONS] Requested deletion of station ${stationId} (${stationName})`);
         setError('');
         setSuccess('');
+        setDeletingId(stationId);
 
         try {
             await axios.delete(`${API_URL}/stations/${stationId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
+            console.log(`[STATIONS] Success: Station ${stationId} deleted`);
             setSuccess('Station deleted successfully!');
             fetchStations();
-            setTimeout(() => setSuccess(''), 3000);
+
+            // Scroll internal container to top to show success message
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            setTimeout(() => setSuccess(''), 5000);
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to delete station');
+            console.error(`[STATIONS] Deletion failed:`, err);
+            const errorMsg = err.response?.data?.detail || 'Failed to delete station';
+            setError(errorMsg);
+
+            // Scroll internal container to top to show error message
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -179,129 +199,148 @@ const Stations = () => {
     }
 
     return (
-        <div style={{ padding: '30px', overflowY: 'auto', height: 'calc(100vh - 70px)' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1 style={{
-                    fontSize: '2rem',
-                    margin: 0,
-                    fontFamily: 'Outfit, sans-serif',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                }}>
-                    🚉 Railway Stations
-                </h1>
-
-                <button
-                    onClick={() => {
-                        console.log('Add New Station button clicked');
-                        setShowAddForm(true);
-                        setEditingStation(null);
-                        // Reset form data without calling resetForm (which would set showAddForm to false)
-                        setFormData({
-                            name: '',
-                            code: '',
-                            latitude: '',
-                            longitude: '',
-                            station_master_email: ''
-                        });
-                        setError('');
-                        console.log('showAddForm state should now be true');
-                    }}
-                    style={{
+        <div
+            ref={scrollContainerRef}
+            style={{ padding: '24px', overflowY: 'auto', height: 'calc(100vh - 60px)', background: 'transparent' }}
+        >
+            {/* Header - Infrastructure Control */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <div>
+                    <h1 style={{
+                        fontSize: '1.5rem',
+                        margin: 0,
+                        marginBottom: '4px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        color: 'var(--text-primary)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '2px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px 20px',
-                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: 'white',
-                        fontSize: '0.95rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)'
-                    }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 8px 30px rgba(99, 102, 241, 0.5)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 20px rgba(99, 102, 241, 0.3)';
-                    }}
-                >
-                    <Plus size={18} />
-                    Add New Station
-                </button>
+                        gap: '12px'
+                    }}>
+                        <div style={{ width: '8px', height: '20px', background: 'var(--accent-blue)' }}></div>
+                        INFRASTRUCTURE_NODES
+                    </h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        STATION_MASTER_DATABASE // GEO_SPATIAL_SYNC: ACTIVE
+                    </p>
+                </div>
+
+                {user?.role === 'Admin' && (
+                    <button
+                        onClick={() => {
+                            setShowAddForm(true);
+                            setEditingStation(null);
+                            setFormData({
+                                name: '',
+                                code: '',
+                                latitude: '',
+                                longitude: '',
+                                station_master_email: '',
+                                station_master_username: '',
+                                station_master_password: ''
+                            });
+                            setError('');
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '12px 24px',
+                            background: 'transparent',
+                            border: '1px solid var(--accent-blue)',
+                            color: 'var(--accent-blue)',
+                            fontSize: '0.75rem',
+                            fontWeight: 900,
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            boxShadow: 'var(--accent-glow)'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.background = 'var(--accent-blue)';
+                            e.currentTarget.style.color = 'var(--bg-primary)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--accent-blue)';
+                        }}
+                    >
+                        <Plus size={16} />
+                        REGISTER_NEW_NODE
+                    </button>
+                )}
             </div>
 
-            {/* Success/Error Messages */}
+            {/* Status Messages */}
             {success && (
                 <div style={{
-                    padding: '14px 18px',
+                    padding: '12px 16px',
                     marginBottom: '20px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(16, 185, 129, 0.4)',
-                    borderRadius: '12px',
-                    color: '#6ee7b7',
-                    fontSize: '0.9rem'
+                    background: 'rgba(0, 230, 118, 0.05)',
+                    border: '1px solid var(--status-safe)',
+                    color: 'var(--status-safe)',
+                    fontSize: '0.75rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    textTransform: 'uppercase'
                 }}>
-                    ✓ {success}
+                    LOG_MSG: {success}
                 </div>
             )}
 
             {error && (
                 <div style={{
-                    padding: '14px 18px',
+                    padding: '12px 16px',
                     marginBottom: '20px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                    borderRadius: '12px',
-                    color: '#fca5a5',
-                    fontSize: '0.9rem'
+                    background: 'rgba(255, 59, 59, 0.05)',
+                    border: '1px solid var(--status-critical)',
+                    color: 'var(--status-critical)',
+                    fontSize: '0.75rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    textTransform: 'uppercase'
                 }}>
-                    ✗ {error}
+                    SYS_ERR: {error}
                 </div>
             )}
 
-            {/* Add/Edit Form */}
+            {/* Data Entry Form */}
             {(showAddForm || editingStation) && (
                 <div style={{
-                    background: 'rgba(19, 19, 26, 0.9)',
-                    backdropFilter: 'blur(30px)',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                    borderRadius: '16px',
-                    padding: '30px',
-                    marginBottom: '30px',
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    padding: '32px',
+                    marginBottom: '32px',
+                    position: 'relative'
                 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                        <h2 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem' }}>
-                            {editingStation ? 'Edit Station' : 'Add New Station'}
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--accent-blue)' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                        <h2 style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: '1rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            [PROTOCOL: {editingStation ? 'STATION_UPDATE' : 'STATION_REGISTRATION'}]
                         </h2>
                         <button
                             onClick={resetForm}
                             style={{
                                 background: 'transparent',
                                 border: 'none',
-                                color: '#94a3b8',
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer',
-                                padding: '8px'
+                                padding: '4px'
                             }}
                         >
-                            <X size={24} />
+                            <X size={20} />
                         </button>
                     </div>
 
                     <form onSubmit={editingStation ? handleUpdateStation : handleCreateStation}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Station Name *
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                    STATION_NAME
                                 </label>
                                 <input
                                     type="text"
@@ -309,23 +348,23 @@ const Stations = () => {
                                     value={formData.name}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="e.g., New Delhi"
+                                    placeholder="e.g., TERMINAL_A"
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
-                                        background: 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif'
+                                        padding: '12px',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'var(--font-mono)',
+                                        outline: 'none'
                                     }}
                                 />
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Station Code *
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                    NODE_CODE
                                 </label>
                                 <input
                                     type="text"
@@ -333,24 +372,46 @@ const Stations = () => {
                                     value={formData.code}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="e.g., NDLS"
+                                    placeholder="e.g., TML-A"
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
-                                        background: 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif',
+                                        padding: '12px',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'var(--font-mono)',
                                         textTransform: 'uppercase'
                                     }}
                                 />
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Latitude *
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                    MASTER_AUTH_EMAIL
+                                </label>
+                                <input
+                                    type="email"
+                                    name="station_master_email"
+                                    value={formData.station_master_email}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="admin@railway.gov"
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'var(--font-mono)'
+                                    }}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                    LAT_COORDINATE
                                 </label>
                                 <input
                                     type="number"
@@ -359,23 +420,22 @@ const Stations = () => {
                                     value={formData.latitude}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="e.g., 28.6410"
+                                    placeholder="00.0000"
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
-                                        background: 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif'
+                                        padding: '12px',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'var(--font-mono)'
                                     }}
                                 />
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Longitude *
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                    LON_COORDINATE
                                 </label>
                                 <input
                                     type="number"
@@ -384,245 +444,206 @@ const Stations = () => {
                                     value={formData.longitude}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="e.g., 77.2197"
+                                    placeholder="00.0000"
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
-                                        background: 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif'
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Station Master Email *
-                                </label>
-                                <input
-                                    type="email"
-                                    name="station_master_email"
-                                    value={formData.station_master_email}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="e.g., stationmaster@railway.com"
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px 16px',
-                                        background: 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif'
+                                        padding: '12px',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'var(--font-mono)'
                                     }}
                                 />
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Master Login Username *
-                                </label>
-                                <input
-                                    type="text"
-                                    name="station_master_username"
-                                    value={formData.station_master_username}
-                                    onChange={handleInputChange}
-                                    required={!editingStation}
-                                    disabled={editingStation}
-                                    placeholder="e.g., ndls_admin"
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px 16px',
-                                        background: editingStation ? 'rgba(255, 255, 255, 0.05)' : 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif'
-                                    }}
-                                />
-                                {editingStation && <p style={{ fontSize: '0.75rem', color: '#8b8d98', marginTop: '4px' }}>Username cannot be changed</p>}
-                            </div>
+                        {!editingStation && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px', padding: '24px', background: 'rgba(77, 163, 255, 0.05)', border: '1px dashed var(--border-color)' }}>
+                                <div className="form-group">
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent-blue)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                        MASTER_IDENTIFIER (UID)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="station_master_username"
+                                        value={formData.station_master_username}
+                                        onChange={handleInputChange}
+                                        required
+                                        placeholder="OP_LOGIN_ID"
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            background: 'var(--bg-primary)',
+                                            border: '1px solid var(--accent-blue)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.85rem',
+                                            fontFamily: 'var(--font-mono)'
+                                        }}
+                                    />
+                                </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600, color: '#c8cad3' }}>
-                                    Master Login Password *
-                                </label>
-                                <input
-                                    type="password"
-                                    name="station_master_password"
-                                    value={formData.station_master_password}
-                                    onChange={handleInputChange}
-                                    required={!editingStation}
-                                    disabled={editingStation}
-                                    placeholder="Enter secure password"
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px 16px',
-                                        background: editingStation ? 'rgba(255, 255, 255, 0.05)' : 'rgba(10, 10, 15, 0.6)',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                                        borderRadius: '10px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontFamily: 'Space Grotesk, sans-serif'
-                                    }}
-                                />
-                                {editingStation && <p style={{ fontSize: '0.75rem', color: '#8b8d98', marginTop: '4px' }}>Use User Management to change passwords</p>}
+                                <div className="form-group">
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent-blue)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                                        SECURITY_ACCESS_PHRASE
+                                    </label>
+                                    <input
+                                        type="password"
+                                        name="station_master_password"
+                                        value={formData.station_master_password}
+                                        onChange={handleInputChange}
+                                        required
+                                        placeholder="••••••••"
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            background: 'var(--bg-primary)',
+                                            border: '1px solid var(--accent-blue)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.85rem',
+                                            fontFamily: 'var(--font-mono)'
+                                        }}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
                             <button
                                 type="button"
                                 onClick={resetForm}
                                 style={{
-                                    padding: '12px 24px',
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    borderRadius: '10px',
-                                    color: '#c8cad3',
-                                    fontSize: '0.95rem',
-                                    fontWeight: 600,
+                                    padding: '12px 32px',
+                                    background: 'transparent',
+                                    border: '1px solid var(--text-secondary)',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                    fontFamily: 'var(--font-mono)',
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s ease'
+                                    textTransform: 'uppercase'
                                 }}
                             >
-                                Cancel
+                                CANCEL
                             </button>
                             <button
                                 type="submit"
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '12px 24px',
-                                    background: 'linear-gradient(135deg, #06b6d4 0%, #14b8a6 100%)',
+                                    gap: '10px',
+                                    padding: '12px 32px',
+                                    background: 'var(--accent-blue)',
                                     border: 'none',
-                                    borderRadius: '10px',
-                                    color: 'white',
-                                    fontSize: '0.95rem',
-                                    fontWeight: 600,
+                                    color: 'var(--bg-primary)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 900,
+                                    fontFamily: 'var(--font-mono)',
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s ease'
+                                    textTransform: 'uppercase'
                                 }}
                             >
-                                <Save size={18} />
-                                {editingStation ? 'Update Station' : 'Create Station'}
+                                <Save size={16} />
+                                {editingStation ? 'COMMIT_CHANGES' : 'EXECUTE_REGISTRATION'}
                             </button>
                         </div>
                     </form>
                 </div>
             )}
 
-            {/* Stations Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
-                {stations.map(station => (
-                    <div
-                        key={station.id}
-                        style={{
-                            background: 'rgba(19, 19, 26, 0.7)',
-                            backdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(99, 102, 241, 0.2)',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            transition: 'all 0.3s ease',
-                            cursor: 'pointer'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)';
-                            e.currentTarget.style.boxShadow = '0 10px 30px rgba(99, 102, 241, 0.2)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                            <div>
-                                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.3rem', fontFamily: 'Outfit, sans-serif', color: 'white' }}>
-                                    {station.name}
-                                </h3>
-                                <span style={{
-                                    display: 'inline-block',
-                                    padding: '4px 12px',
-                                    background: 'rgba(6, 182, 212, 0.15)',
-                                    border: '1px solid rgba(6, 182, 212, 0.3)',
-                                    borderRadius: '6px',
-                                    color: '#06b6d4',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 700,
-                                    fontFamily: 'monospace'
-                                }}>
-                                    {station.code}
-                                </span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                    onClick={() => startEdit(station)}
-                                    style={{
-                                        padding: '8px',
-                                        background: 'rgba(99, 102, 241, 0.15)',
-                                        border: '1px solid rgba(99, 102, 241, 0.3)',
-                                        borderRadius: '8px',
-                                        color: '#8b5cf6',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    title="Edit station"
-                                >
-                                    <Edit2 size={16} />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteStation(station.id, station.name)}
-                                    style={{
-                                        padding: '8px',
-                                        background: 'rgba(239, 68, 68, 0.15)',
-                                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                                        borderRadius: '8px',
-                                        color: '#ef4444',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    title="Delete station"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div style={{ marginTop: '16px', fontSize: '0.9rem', color: '#8b8d98' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                <MapPin size={16} color="#06b6d4" />
-                                <span>{station.latitude.toFixed(4)}, {station.longitude.toFixed(4)}</span>
-                            </div>
-                            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(99, 102, 241, 0.1)' }}>
-                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#06b6d4', marginBottom: '4px' }}>
-                                    Station Master
-                                </div>
-                                <div style={{ color: '#c8cad3', wordBreak: 'break-all' }}>
-                                    {station.station_master_email}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+            {/* Stations Data Table */}
+            <div className="table-container">
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th style={{ width: '80px' }}>CODE</th>
+                            <th>STATION_NAME</th>
+                            <th>LAT_COORDINATE</th>
+                            <th>LON_COORDINATE</th>
+                            <th>SECURE_AUTH_EMAIL</th>
+                            {user?.role === 'Admin' && <th style={{ width: '120px', textAlign: 'right' }}>ACTIONS</th>}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {stations.map(station => (
+                            <tr key={station.id}>
+                                <td>
+                                    <span style={{
+                                        padding: '4px 8px',
+                                        background: 'rgba(77, 163, 255, 0.1)',
+                                        border: '1px solid var(--accent-blue)',
+                                        color: 'var(--accent-blue)',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        fontFamily: 'var(--font-mono)'
+                                    }}>
+                                        {station.code}
+                                    </span>
+                                </td>
+                                <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{station.name.toUpperCase()}</td>
+                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{station.latitude.toFixed(6)}</td>
+                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{station.longitude.toFixed(6)}</td>
+                                <td style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{station.station_master_email}</td>
+                                {user?.role === 'Admin' && (
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                            <button
+                                                onClick={() => startEdit(station)}
+                                                style={{
+                                                    padding: '6px',
+                                                    background: 'transparent',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: 'var(--accent-blue)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                                onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-blue)'}
+                                                onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                                                title="EDIT_NODE"
+                                            >
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteStation(station.id, station.name)}
+                                                disabled={deletingId === station.id}
+                                                style={{
+                                                    padding: '6px',
+                                                    background: deletingId === station.id ? 'rgba(255, 59, 59, 0.1)' : 'transparent',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: 'var(--status-critical)',
+                                                    cursor: deletingId === station.id ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    opacity: deletingId === station.id ? 0.7 : 1
+                                                }}
+                                                onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--status-critical)'}
+                                                onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                                                title="DELETE_NODE"
+                                            >
+                                                {deletingId === station.id ? (
+                                                    <div style={{ width: '14px', height: '14px', border: '2px solid' }} className="spinner"></div>
+                                                ) : <Trash2 size={14} />}
+                                            </button>
+                                        </div>
+                                    </td>
+                                )}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
             {stations.length === 0 && (
                 <div style={{
                     textAlign: 'center',
-                    padding: '60px 20px',
-                    color: '#8b8d98',
-                    fontSize: '1.1rem'
+                    padding: '80px 20px',
+                    color: 'var(--text-secondary)',
+                    border: '1px dashed var(--border-color)',
+                    background: 'rgba(18, 26, 47, 0.2)'
                 }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🚉</div>
-                    No stations found. Click "Add New Station" to get started.
+                    <div style={{ fontSize: '2rem', marginBottom: '16px', opacity: 0.3 }}>🚉</div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        DATABASE_EMPTY: NO_STATIONS_INITIALIZED
+                    </p>
                 </div>
             )}
         </div>

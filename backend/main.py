@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,6 +13,10 @@ from datetime import datetime, timedelta
 import subprocess
 import os
 from pathlib import Path
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+import pytz
 import database
 from database import Defect, SessionLocal, User, Station
 import groq_service
@@ -31,6 +37,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files for images
+uploads_dir = Path(__file__).parent / "uploads"
+uploads_dir.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 # Database Dependency
 def get_db():
@@ -259,10 +270,12 @@ async def upload_and_analyze(
             severity = normalize_severity(analysis.get("severity", "High"))
             
             # Create defect record
+            # Store relative path for serving via static files
+            filename = os.path.basename(filepath)
             db_defect = Defect(
                 defect_type="Track Defect",
                 confidence=confidence,
-                image_url=os.path.abspath(filepath),
+                image_url=f"/uploads/{filename}",
                 latitude=location_data["latitude"],
                 longitude=location_data["longitude"],
                 nearest_station=location_data["nearest_station"],
@@ -422,6 +435,111 @@ def get_defects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     defects = db.query(Defect).order_by(Defect.timestamp.desc()).offset(skip).limit(limit).all()
     return defects
 
+@app.get("/defects/export/excel")
+def export_defects_excel(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Export all defects to Excel file.
+    Available for both Admin and StationMaster users.
+    """
+    # Get all defects
+    defects = db.query(Defect).order_by(Defect.timestamp.desc()).all()
+    
+    # Create workbook and worksheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Defect Reports"
+    
+    # Define IST timezone
+    ist = pytz.timezone('Asia/Kolkata')
+    
+    # Define headers
+    headers = [
+        "ID", "Timestamp (IST)", "Defect Type", "Severity", "Status", 
+        "Confidence (%)", "Latitude", "Longitude", "Nearest Station",
+        "Root Cause", "Action Required", "Resolution Steps", 
+        "Resolved At (IST)", "Resolved By"
+    ]
+    
+    # Add headers with styling
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Add data rows
+    for row_num, defect in enumerate(defects, 2):
+        # Convert timestamp to IST
+        timestamp_ist = defect.timestamp.replace(tzinfo=pytz.UTC).astimezone(ist) if defect.timestamp else None
+        resolved_at_ist = defect.resolved_at.replace(tzinfo=pytz.UTC).astimezone(ist) if defect.resolved_at else None
+        
+        # Get resolver username
+        resolver_name = ""
+        if defect.resolved_by:
+            resolver = db.query(User).filter(User.id == defect.resolved_by).first()
+            resolver_name = resolver.username if resolver else f"User ID {defect.resolved_by}"
+        
+        row_data = [
+            defect.id,
+            timestamp_ist.strftime("%Y-%m-%d %H:%M:%S") if timestamp_ist else "",
+            defect.defect_type or "",
+            defect.severity or "",
+            defect.status or "Open",
+            defect.confidence or 0,
+            defect.latitude or "",
+            defect.longitude or "",
+            defect.nearest_station or "",
+            defect.root_cause or "",
+            defect.action_required or "",
+            defect.resolution_steps or "",
+            resolved_at_ist.strftime("%Y-%m-%d %H:%M:%S") if resolved_at_ist else "",
+            resolver_name
+        ]
+        
+        for col_num, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_num, column=col_num, value=value)
+            
+            # Color code severity column
+            if col_num == 4:  # Severity column
+                if value == "Critical":
+                    cell.fill = PatternFill(start_color="FFD7D7", end_color="FFD7D7", fill_type="solid")
+                    cell.font = Font(color="C00000", bold=True)
+                elif value == "High":
+                    cell.fill = PatternFill(start_color="FFE6CC", end_color="FFE6CC", fill_type="solid")
+                    cell.font = Font(color="E67300", bold=True)
+                elif value == "Low":
+                    cell.fill = PatternFill(start_color="FFFFCC", end_color="FFFFCC", fill_type="solid")
+                    cell.font = Font(color="997300", bold=True)
+    
+    # Auto-size columns
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)  # Cap at 50 for very long text
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Save to BytesIO
+    excel_file = io.BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+    
+    # Generate filename with current date
+    filename = f"railway_defects_report_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    
+    # Return as streaming response
+    return StreamingResponse(
+        excel_file,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @app.patch("/defects/{defect_id}/resolve", response_model=DefectResponse)
 def resolve_defect(
     defect_id: int,
@@ -484,7 +602,83 @@ def reopen_defect(
     
     return defect
 
-    return defect
+@app.delete("/defects/{defect_id}")
+def delete_defect(
+    defect_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Delete a defect record permanently (Admin only)."""
+    defect = db.query(Defect).filter(Defect.id == defect_id).first()
+    
+    if not defect:
+        raise HTTPException(status_code=404, detail="Defect not found")
+    
+    # Optionally delete the image file if it exists
+    if defect.image_url and defect.image_url.startswith("/uploads/"):
+        try:
+            filename = defect.image_url.replace("/uploads/", "")
+            filepath = os.path.join("uploads", filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception as e:
+            print(f"Error deleting image file: {e}")
+            # Continue with database deletion even if file deletion fails
+    
+    # Delete from database
+    db.delete(defect)
+    db.commit()
+    
+    return {"message": "Defect deleted successfully", "defect_id": defect_id}
+
+class BulkDeleteRequest(BaseModel):
+    defect_ids: List[int]
+
+@app.post("/defects/bulk-delete")
+def bulk_delete_defects(
+    request: BulkDeleteRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Delete multiple defect records permanently (Admin only)."""
+    if not request.defect_ids:
+        raise HTTPException(status_code=400, detail="No defect IDs provided")
+    
+    deleted_count = 0
+    errors = []
+    
+    for defect_id in request.defect_ids:
+        try:
+            defect = db.query(Defect).filter(Defect.id == defect_id).first()
+            
+            if not defect:
+                errors.append(f"Defect {defect_id} not found")
+                continue
+            
+            # Optionally delete the image file if it exists
+            if defect.image_url and defect.image_url.startswith("/uploads/"):
+                try:
+                    filename = defect.image_url.replace("/uploads/", "")
+                    filepath = os.path.join("uploads", filename)
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+                except Exception as e:
+                    print(f"Error deleting image file for defect {defect_id}: {e}")
+            
+            # Delete from database
+            db.delete(defect)
+            deleted_count += 1
+        except Exception as e:
+            errors.append(f"Error deleting defect {defect_id}: {str(e)}")
+    
+    db.commit()
+    
+    return {
+        "message": f"Successfully deleted {deleted_count} defect(s)",
+        "deleted_count": deleted_count,
+        "errors": errors if errors else None
+    }
+
 
 # Drone Inspection Control (Admin only)
 drone_process = None
@@ -702,24 +896,36 @@ def delete_station(
     admin: User = Depends(require_admin)
 ):
     """Delete a railway station (Admin only)."""
+    print(f"DELETION_REQUEST: Station {station_id} requested by {admin.username}")
+    
     db_station = db.query(Station).filter(Station.id == station_id).first()
     if not db_station:
+        print(f"DELETION_FAILED: Station {station_id} not found")
         raise HTTPException(status_code=404, detail="Station not found")
     
     # Check if station has assigned defects
     assigned_defects = db.query(Defect).filter(Defect.assigned_station_id == station_id).count()
     if assigned_defects > 0:
+        print(f"DELETION_FAILED: Station {station_id} has {assigned_defects} assigned defects")
         raise HTTPException(
             status_code=400, 
             detail=f"Cannot delete station with {assigned_defects} assigned defects. Please reassign or delete them first."
         )
     
-    # Delete associated users
-    db.query(User).filter(User.station_id == station_id).delete()
-    db.commit()
-    
-    db.delete(db_station)
-    db.commit()
+    try:
+        # Delete associated users and the station in a single transaction
+        print(f"DELETION_EXECUTE: Removing associated users for station {station_id}")
+        db.query(User).filter(User.station_id == station_id).delete()
+        
+        print(f"DELETION_EXECUTE: Removing station record {station_id}")
+        db.delete(db_station)
+        
+        db.commit()
+        print(f"DELETION_SUCCESS: Station {station_id} and its associated users removed")
+    except Exception as e:
+        db.rollback()
+        print(f"DELETION_ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error during deletion: {str(e)}")
     
     return None
 

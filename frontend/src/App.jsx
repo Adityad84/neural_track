@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -9,11 +10,13 @@ import Reports from './pages/Reports';
 import Stations from './pages/Stations';
 import Login from './pages/Login';
 import DronePage from './pages/DronePage';
+import LoadingScreen from './components/LoadingScreen';
 
 const API_URL = "http://localhost:8000";
 
 function AppContent() {
     const [defects, setDefects] = useState([]);
+    const [initialLoading, setInitialLoading] = useState(true);
     const { token, user } = useAuth();
 
     // Poll for new defects every 5 seconds
@@ -46,6 +49,10 @@ function AppContent() {
         const interval = setInterval(fetchDefects, 5000);
         return () => clearInterval(interval);
     }, [token, user]);
+
+    if (initialLoading) {
+        return <LoadingScreen onFinished={() => setInitialLoading(false)} />;
+    }
 
     return (
         <div className="app">
@@ -93,9 +100,11 @@ function AppContent() {
 function App() {
     return (
         <Router>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
+            <ThemeProvider>
+                <AuthProvider>
+                    <AppContent />
+                </AuthProvider>
+            </ThemeProvider>
         </Router>
     );
 }

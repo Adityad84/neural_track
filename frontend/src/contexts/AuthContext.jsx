@@ -8,7 +8,7 @@ const API_URL = "http://localhost:8000";
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [token, setToken] = useState(localStorage.getItem('token'));
+    const [token, setToken] = useState(sessionStorage.getItem('token'));
 
     // Fetch user data on mount if token exists
     useEffect(() => {
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
         const res = await axios.post(`${API_URL}/auth/login`, formData);
         const newToken = res.data.access_token;
 
-        localStorage.setItem('token', newToken);
+        sessionStorage.setItem('token', newToken);
         setToken(newToken);
 
         // Fetch user data after login
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         setToken(null);
         setUser(null);
     };

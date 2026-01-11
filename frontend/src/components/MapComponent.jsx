@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Custom Icons
 const createIcon = (color) => {
@@ -28,6 +29,7 @@ const RecenterMap = ({ center }) => {
 };
 
 const MapComponent = ({ defects, selectedDefect, onSelectDefect }) => {
+    const { theme } = useTheme();
     const defaultCenter = [28.6139, 77.2090]; // New Delhi
     const center = selectedDefect
         ? [selectedDefect.latitude, selectedDefect.longitude]
@@ -42,8 +44,11 @@ const MapComponent = ({ defects, selectedDefect, onSelectDefect }) => {
                 zoomControl={false}
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url={theme === 'dark'
+                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    }
                 />
 
                 {selectedDefect && <RecenterMap center={[selectedDefect.latitude, selectedDefect.longitude]} />}
@@ -63,9 +68,25 @@ const MapComponent = ({ defects, selectedDefect, onSelectDefect }) => {
                             }}
                         >
                             <Popup className="custom-popup">
-                                <strong>{defect.defect_type}</strong><br />
-                                Severity: <span style={{ color: defect.severity === 'Critical' ? 'red' : 'black' }}>{defect.severity}</span> <br />
-                                {defect.nearest_station}
+                                <div style={{
+                                    padding: '5px',
+                                    fontFamily: 'var(--font-mono)',
+                                    textTransform: 'uppercase',
+                                    background: 'var(--bg-secondary)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)',
+                                }}>
+                                    <div style={{ color: 'var(--accent-blue)', fontWeight: 800, marginBottom: '5px', borderBottom: '1px solid var(--border-color)', paddingBottom: '3px' }}>
+                                        ANOMALY_RECORD
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 900 }}>{defect.defect_type}</div>
+                                    <div style={{ fontSize: '0.65rem', marginTop: '3px' }}>
+                                        LEVEL: <span style={{ color: defect.severity === 'Critical' ? 'var(--status-critical)' : 'var(--status-warning)' }}>{defect.severity}</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.65rem', marginTop: '2px', color: 'var(--text-secondary)' }}>
+                                        NODE: {defect.nearest_station?.toUpperCase() || 'UNKNOWN'}
+                                    </div>
+                                </div>
                             </Popup>
                         </Marker>
                     )

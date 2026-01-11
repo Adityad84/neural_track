@@ -30,63 +30,53 @@ export default function Login() {
         <div className="login-container">
             <div className="login-card">
                 <div className="login-header">
-                    <h1>⚡ Neural Track</h1>
-                    <p>AI-Powered Railway Defect Detection</p>
+                    <h1>NEURAL TRACK</h1>
+                    <p>AI Railway Defect Detection System</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
                     <div className="form-group">
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="username">Operator Identification</label>
                         <input
                             id="username"
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter your username"
+                            placeholder="OPERATOR_ID"
                             required
                             autoFocus
                         />
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="password">Password</label>
+                        <label htmlFor="password">Security Clearance Keychain</label>
                         <input
                             id="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
+                            placeholder="AUTH_PASSCODE"
                             required
                         />
                     </div>
 
                     {error && (
                         <div className="error-message">
-                            <AlertCircle size={18} />
-                            <span>{error}</span>
+                            <AlertCircle size={16} />
+                            <span>PROTOCOL_ERROR: {error}</span>
                         </div>
                     )}
 
                     <button type="submit" className="login-button" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? 'INITIALIZING...' : 'AUTHENTICATE'}
                     </button>
                 </form>
 
                 <div className="login-footer">
-                    <p>Default Credentials:</p>
+                    <p>AUTHORIZED OPERATOR ACCESS ONLY</p>
                     <div className="credentials-grid">
-                        <div>
-                            <strong>Admin:</strong> <code>admin</code> / <code>admin123</code>
-                        </div>
-                        <div>
-                            <strong>NDLS:</strong> <code>sm_ndls</code> / <code>ndls123</code>
-                        </div>
-                        <div>
-                            <strong>DLI:</strong> <code>sm_dli</code> / <code>dli123</code>
-                        </div>
-                        <div>
-                            <strong>NZM:</strong> <code>sm_nzm</code> / <code>nzm123</code>
-                        </div>
+                        <div><strong>ADMIN_LEVEL:</strong> <code>admin</code> / <code>admin123</code></div>
+                        <div><strong>STATION_MASTER:</strong> <code>sm_ndls</code> / <code>ndls123</code></div>
                     </div>
                 </div>
             </div>

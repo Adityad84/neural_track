@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, MapPin, AlertTriangle, Check, Clock, X, CheckCircle, Info } from 'lucide-react';
+import { Search, MapPin, AlertTriangle, Check, Clock, X, CheckCircle, Info, Download } from 'lucide-react';
 
 const API_URL = "http://localhost:8000";
 
@@ -12,6 +12,10 @@ const Reports = ({ defects }) => {
     const [selectedDefect, setSelectedDefect] = useState(null);
     const [resolving, setResolving] = useState(false);
     const [reopening, setReopening] = useState(false);
+    const [downloading, setDownloading] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [selectedDefects, setSelectedDefects] = useState([]);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const { token, user } = useAuth();
 
     const filteredDefects = defects.filter(defect => {
@@ -24,6 +28,41 @@ const Reports = ({ defects }) => {
 
         return matchesSearch && matchesSeverity && matchesStatus;
     });
+
+    // Handle Excel download
+    const handleDownloadExcel = async () => {
+        setDownloading(true);
+        try {
+            const response = await axios.get(`${API_URL}/defects/export/excel`, {
+                headers: { Authorization: `Bearer ${token}` },
+                responseType: 'blob'
+            });
+
+            // Create download link
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Extract filename from response headers or use default
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `railway_defects_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                if (filenameMatch) filename = filenameMatch[1];
+            }
+
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Error downloading Excel:', err);
+            alert(err.response?.data?.detail || 'Failed to download Excel file');
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     // Handle marking defect as resolved
     const handleMarkResolved = async () => {
@@ -68,175 +107,330 @@ const Reports = ({ defects }) => {
         }
     };
 
-    return (
-        <div style={{ padding: '30px', overflowY: 'auto', height: 'calc(100vh - 70px)' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1 style={{
-                    fontSize: '2rem',
-                    margin: 0,
-                    fontFamily: 'Outfit, sans-serif',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                }}>
-                    📊 Defect Reports
-                </h1>
+    // Handle deleting defect (admin only)
+    const handleDelete = async () => {
+        if (!selectedDefect) return;
 
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    {/* Search */}
+        const confirmed = window.confirm(
+            `Are you sure you want to permanently delete this defect report?\n\nDefect ID: #${selectedDefect.id}\nType: ${selectedDefect.defect_type}\n\nThis action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        setDeleting(true);
+        try {
+            await axios.delete(`${API_URL}/defects/${selectedDefect.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setSelectedDefect(null);
+            window.location.reload();
+        } catch (err) {
+            console.error('Error deleting defect:', err);
+            alert(err.response?.data?.detail || 'Failed to delete defect');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // Handle bulk delete (admin only)
+    const handleBulkDelete = async () => {
+        if (selectedDefects.length === 0) return;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to permanently delete ${selectedDefects.length} defect report(s)?\n\nThis action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        setBulkDeleting(true);
+        try {
+            await axios.post(`${API_URL}/defects/bulk-delete`,
+                { defect_ids: selectedDefects },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            setSelectedDefects([]);
+            window.location.reload();
+        } catch (err) {
+            console.error('Error bulk deleting defects:', err);
+            alert(err.response?.data?.detail || 'Failed to delete defects');
+        } finally {
+            setBulkDeleting(false);
+        }
+    };
+
+    // Handle checkbox toggle
+    const handleCheckboxToggle = (defectId) => {
+        setSelectedDefects(prev =>
+            prev.includes(defectId)
+                ? prev.filter(id => id !== defectId)
+                : [...prev, defectId]
+        );
+    };
+
+    // Handle select all
+    const handleSelectAll = () => {
+        if (selectedDefects.length === filteredDefects.length) {
+            setSelectedDefects([]);
+        } else {
+            setSelectedDefects(filteredDefects.map(d => d.id));
+        }
+    };
+
+    return (
+        <div style={{ padding: '24px', overflowY: 'auto', height: 'calc(100vh - 60px)', background: 'transparent' }}>
+            {/* Header - Intelligence & Analytics */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <div>
+                    <h1 style={{
+                        fontSize: '1.5rem',
+                        margin: 0,
+                        marginBottom: '4px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        color: 'var(--text-primary)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                    }}>
+                        <div style={{ width: '8px', height: '20px', background: 'var(--accent-blue)' }}></div>
+                        ANOMALY_ARCHIVE_REPORTS
+                    </h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        CENTRAL_DETECTION_LOG // SYSTEM_QUERY: READY
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '16px' }}>
+                    {/* Search - Terminal Style */}
                     <div style={{ position: 'relative' }}>
-                        <Search size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#8b8d98' }} />
+                        <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--accent-blue)' }} />
                         <input
                             type="text"
-                            placeholder="Search location, type..."
+                            placeholder="QUERY_BY_LOC_OR_TYPE..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{
-                                background: 'rgba(19, 19, 26, 0.7)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(99, 102, 241, 0.2)',
-                                padding: '12px 14px 12px 42px',
-                                borderRadius: '12px',
-                                color: 'white',
-                                width: '240px',
-                                fontFamily: 'Space Grotesk, sans-serif'
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                padding: '10px 12px 10px 36px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.75rem',
+                                width: '280px',
+                                fontFamily: 'var(--font-mono)',
+                                outline: 'none'
                             }}
                         />
                     </div>
 
-                    {/* Severity Filter */}
+                    {/* Filters - Industrial Selects */}
                     <select
                         value={filterSeverity}
                         onChange={(e) => setFilterSeverity(e.target.value)}
                         style={{
-                            background: 'rgba(19, 19, 26, 0.7)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(99, 102, 241, 0.2)',
-                            padding: '12px 16px',
-                            borderRadius: '12px',
-                            color: 'white',
-                            fontFamily: 'Space Grotesk, sans-serif',
-                            cursor: 'pointer'
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            padding: '10px 16px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.75rem',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            textTransform: 'uppercase'
                         }}
                     >
-                        <option value="All">All Severities</option>
-                        <option value="Critical">Critical</option>
-                        <option value="High">High</option>
-                        <option value="Low">Low</option>
+                        <option value="All">SEVERITY: ALL</option>
+                        <option value="Critical">SEVERITY: CRITICAL</option>
+                        <option value="High">SEVERITY: HIGH</option>
+                        <option value="Low">SEVERITY: LOW</option>
                     </select>
 
-                    {/* Status Filter */}
                     <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                         style={{
-                            background: 'rgba(19, 19, 26, 0.7)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(99, 102, 241, 0.2)',
-                            padding: '12px 16px',
-                            borderRadius: '12px',
-                            color: 'white',
-                            fontFamily: 'Space Grotesk, sans-serif',
-                            cursor: 'pointer'
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            padding: '10px 16px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.75rem',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            textTransform: 'uppercase'
                         }}
                     >
-                        <option value="All">All Status</option>
-                        <option value="Open">Open</option>
-                        <option value="Resolved">Resolved</option>
+                        <option value="All">STATUS: ALL</option>
+                        <option value="Open">STATUS: OPEN</option>
+                        <option value="Resolved">STATUS: RESOLVED</option>
                     </select>
+
+                    {/* Download Excel Button */}
+                    <button
+                        onClick={handleDownloadExcel}
+                        disabled={downloading}
+                        style={{
+                            background: downloading ? 'var(--bg-secondary)' : 'var(--status-safe)',
+                            border: '1px solid var(--border-color)',
+                            padding: '10px 20px',
+                            color: downloading ? 'var(--text-secondary)' : 'var(--bg-primary)',
+                            fontSize: '0.75rem',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: downloading ? 'not-allowed' : 'pointer',
+                            outline: 'none',
+                            textTransform: 'uppercase',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Download size={14} />
+                        {downloading ? 'GENERATING...' : 'EXPORT_EXCEL'}
+                    </button>
+
+                    {/* Bulk Delete Button - Only show if admin and items selected */}
+                    {user?.role === 'Admin' && selectedDefects.length > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={bulkDeleting}
+                            style={{
+                                background: bulkDeleting ? 'var(--bg-secondary)' : 'var(--status-critical)',
+                                border: '1px solid var(--border-color)',
+                                padding: '10px 20px',
+                                color: bulkDeleting ? 'var(--text-secondary)' : 'var(--bg-primary)',
+                                fontSize: '0.75rem',
+                                fontFamily: 'var(--font-mono)',
+                                cursor: bulkDeleting ? 'not-allowed' : 'pointer',
+                                outline: 'none',
+                                textTransform: 'uppercase',
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <X size={14} />
+                            {bulkDeleting ? 'DELETING...' : `DELETE (${selectedDefects.length})`}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="table-container" style={{
-                background: 'rgba(19, 19, 26, 0.7)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: '16px',
-                overflow: 'hidden',
-                border: '1px solid rgba(99, 102, 241, 0.2)',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
-            }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            {/* Data Table */}
+            <div className="table-container">
+                <table className="table">
                     <thead>
-                        <tr style={{ background: 'rgba(10, 10, 15, 0.8)', borderBottom: '2px solid rgba(99, 102, 241, 0.3)' }}>
-                            <th style={{ padding: '18px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.5px', color: '#06b6d4' }}>ID</th>
-                            <th style={{ padding: '18px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.5px', color: '#06b6d4' }}>Date/Time</th>
-                            <th style={{ padding: '18px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.5px', color: '#06b6d4' }}>Defect Type</th>
-                            <th style={{ padding: '18px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.5px', color: '#06b6d4' }}>Severity</th>
-                            <th style={{ padding: '18px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.5px', color: '#06b6d4' }}>Location</th>
-                            <th style={{ padding: '18px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.5px', color: '#06b6d4' }}>Status</th>
+                        <tr>
+                            {user?.role === 'Admin' && (
+                                <th style={{ width: '40px', textAlign: 'center' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedDefects.length === filteredDefects.length && filteredDefects.length > 0}
+                                        onChange={handleSelectAll}
+                                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                    />
+                                </th>
+                            )}
+                            <th style={{ width: '80px' }}>CASE_ID</th>
+                            <th>TIMESTAMP</th>
+                            <th>ANOMALY_TYPE</th>
+                            <th>SEVERITY</th>
+                            <th>LOCAL_NODE</th>
+                            <th style={{ textAlign: 'right' }}>STATUS_LOG</th>
+                            <th>RESOLVED_AT</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredDefects.map(defect => (
                             <tr
                                 key={defect.id}
-                                onClick={() => setSelectedDefect(defect)}
-                                style={{
-                                    borderBottom: '1px solid rgba(99, 102, 241, 0.1)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease'
-                                }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                }}
+                                style={{ cursor: 'pointer' }}
                             >
-                                <td style={{ padding: '15px', color: '#94a3b8', fontWeight: 600 }}>#{defect.id}</td>
-                                <td style={{ padding: '15px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <Clock size={14} color="#94a3b8" />
-                                        {new Date(defect.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-                                    </div>
+                                {user?.role === 'Admin' && (
+                                    <td
+                                        style={{ textAlign: 'center' }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDefects.includes(defect.id)}
+                                            onChange={() => handleCheckboxToggle(defect.id)}
+                                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                        />
+                                    </td>
+                                )}
+                                <td
+                                    style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}
+                                    onClick={() => setSelectedDefect(defect)}
+                                >#{defect.id.toString().padStart(4, '0')}</td>
+                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                    {new Date(defect.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: 'short', timeStyle: 'short' }).toUpperCase()}
                                 </td>
-                                <td style={{ padding: '15px', fontWeight: '600' }}>{defect.defect_type}</td>
-                                <td style={{ padding: '15px' }}>
+                                <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{defect.defect_type.toUpperCase()}</td>
+                                <td>
                                     <span style={{
-                                        padding: '6px 12px',
-                                        borderRadius: '6px',
-                                        fontSize: '0.8rem',
-                                        fontWeight: 600,
-                                        background: defect.severity === 'Critical' ? 'rgba(239, 68, 68, 0.2)' : defect.severity === 'High' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                                        color: defect.severity === 'Critical' ? '#fca5a5' : defect.severity === 'High' ? '#fbbf24' : '#93c5fd',
-                                        border: `1px solid ${defect.severity === 'Critical' ? 'rgba(239, 68, 68, 0.4)' : defect.severity === 'High' ? 'rgba(251, 191, 36, 0.4)' : 'rgba(59, 130, 246, 0.4)'}`
+                                        padding: '4px 8px',
+                                        background: defect.severity === 'Critical' ? 'rgba(255, 59, 59, 0.1)' : 'rgba(77, 163, 255, 0.1)',
+                                        border: `1px solid ${defect.severity === 'Critical' ? 'var(--status-critical)' : 'var(--accent-blue)'}`,
+                                        color: defect.severity === 'Critical' ? 'var(--status-critical)' : 'var(--accent-blue)',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 800,
+                                        fontFamily: 'var(--font-mono)'
                                     }}>
-                                        {defect.severity}
+                                        {defect.severity.toUpperCase()}
                                     </span>
                                 </td>
-                                <td style={{ padding: '15px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <MapPin size={14} color="#94a3b8" />
-                                        {defect.nearest_station || 'Unknown'}
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                        <MapPin size={12} color="var(--accent-blue)" />
+                                        {defect.nearest_station?.toUpperCase() || 'NODE_UNKNOWN'}
                                     </div>
                                 </td>
-                                <td style={{ padding: '15px' }}>
+                                <td style={{ textAlign: 'right' }}>
                                     <span style={{
-                                        padding: '6px 12px',
-                                        borderRadius: '6px',
-                                        fontSize: '0.8rem',
-                                        fontWeight: 600,
+                                        padding: '4px 8px',
+                                        background: 'var(--bg-primary)',
+                                        border: `1px solid ${defect.status === 'Resolved' ? 'var(--status-safe)' : 'var(--status-warning)'}`,
+                                        color: defect.status === 'Resolved' ? 'var(--status-safe)' : 'var(--status-warning)',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 800,
+                                        fontFamily: 'var(--font-mono)',
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '6px',
-                                        background: defect.status === 'Resolved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(251, 191, 36, 0.2)',
-                                        color: defect.status === 'Resolved' ? '#6ee7b7' : '#fbbf24',
-                                        border: `1px solid ${defect.status === 'Resolved' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(251, 191, 36, 0.4)'}`
+                                        gap: '6px'
                                     }}>
-                                        {defect.status === 'Resolved' ? <CheckCircle size={14} /> : <Clock size={14} />}
-                                        {defect.status || 'Open'}
+                                        {defect.status === 'Resolved' ? <CheckCircle size={10} /> : <Clock size={10} />}
+                                        {defect.status?.toUpperCase() || 'OPEN'}
                                     </span>
+                                </td>
+                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                    {defect.resolved_at ? (
+                                        new Date(defect.resolved_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: 'short', timeStyle: 'short' }).toUpperCase()
+                                    ) : (
+                                        <span style={{ color: 'var(--border-color)' }}>—</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
                 {filteredDefects.length === 0 && (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                        No defects found matching your criteria.
+                    <div style={{
+                        padding: '60px',
+                        textAlign: 'center',
+                        color: 'var(--text-secondary)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px'
+                    }}>
+                        QUERY_RETURN: NO_RECORDS_FOUND
                     </div>
                 )}
             </div>
@@ -252,8 +446,8 @@ const Reports = ({ defects }) => {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            background: 'rgba(0, 0, 0, 0.7)',
-                            backdropFilter: 'blur(4px)',
+                            background: 'rgba(7, 11, 20, 0.85)',
+                            backdropFilter: 'blur(8px)',
                             zIndex: 999
                         }}
                         onClick={() => setSelectedDefect(null)}
@@ -266,193 +460,246 @@ const Reports = ({ defects }) => {
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
                         width: '90%',
-                        maxWidth: '600px',
+                        maxWidth: '800px',
                         maxHeight: '90vh',
                         overflowY: 'auto',
-                        background: 'rgba(19, 19, 26, 0.95)',
-                        backdropFilter: 'blur(30px)',
-                        border: '1px solid rgba(99, 102, 241, 0.3)',
-                        borderRadius: '20px',
-                        padding: '30px',
-                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        padding: '32px',
+                        boxShadow: 'var(--accent-glow)',
                         zIndex: 1000
                     }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'var(--accent-blue)' }}></div>
+
                         {/* Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                {selectedDefect.severity === 'Critical' ? <AlertTriangle color="#ef4444" /> : <Info color="#3b82f6" />}
-                                {selectedDefect.defect_type}
-                            </h2>
-                            <button onClick={() => setSelectedDefect(null)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                                <X size={24} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {selectedDefect.severity === 'Critical' ? <AlertTriangle color="var(--status-critical)" /> : <Info color="var(--accent-blue)" />}
+                                <h2 style={{ margin: 0, fontSize: '1rem', fontFamily: 'var(--font-mono)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    [ANOMALY_ID: #{selectedDefect.id.toString().padStart(4, '0')}]
+                                </h2>
+                            </div>
+                            <button onClick={() => setSelectedDefect(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <X size={20} />
                             </button>
                         </div>
 
-                        {/* Status Badge */}
-                        {selectedDefect.status === 'Resolved' && (
-                            <div style={{
-                                padding: '12px 16px',
-                                marginBottom: '20px',
-                                background: 'rgba(16, 185, 129, 0.15)',
-                                border: '1px solid rgba(16, 185, 129, 0.4)',
-                                borderRadius: '10px',
-                                color: '#6ee7b7',
-                                fontSize: '0.95rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px'
-                            }}>
-                                <CheckCircle size={20} />
-                                <span>This defect has been marked as resolved</span>
-                            </div>
-                        )}
-
-                        {/* Image */}
-                        <img
-                            src={selectedDefect.image_url.startsWith('http') ? selectedDefect.image_url : "https://via.placeholder.com/400x250?text=No+Image"}
-                            alt="Defect"
-                            style={{
-                                width: '100%',
-                                borderRadius: '12px',
-                                marginBottom: '20px',
-                                border: '1px solid rgba(99, 102, 241, 0.2)'
-                            }}
-                            onError={(e) => { e.target.src = "https://via.placeholder.com/400x250?text=Error+Loading+Image" }}
-                        />
-
-                        {/* Details Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
-                            <div style={{ background: '#1e293b', padding: 12, borderRadius: 8 }}>
-                                <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: 4 }}>Defect ID</div>
-                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>#{selectedDefect.id}</div>
-                            </div>
-                            <div style={{ background: '#1e293b', padding: 12, borderRadius: 8 }}>
-                                <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: 4 }}>Confidence</div>
-                                <div style={{ fontWeight: 'bold', color: '#fbbf24', fontSize: '1.1rem' }}>{selectedDefect.confidence}%</div>
-                            </div>
-                            <div style={{ background: '#1e293b', padding: 12, borderRadius: 8 }}>
-                                <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: 4 }}>Severity</div>
-                                <div style={{ fontWeight: 'bold', color: selectedDefect.severity === 'Critical' ? '#ef4444' : '#fff', fontSize: '1.1rem' }}>{selectedDefect.severity}</div>
-                            </div>
-                            <div style={{ background: '#1e293b', padding: 12, borderRadius: 8 }}>
-                                <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: 4 }}>Status</div>
-                                <div style={{ fontWeight: 'bold', color: selectedDefect.status === 'Resolved' ? '#10b981' : '#fbbf24', fontSize: '1.1rem' }}>{selectedDefect.status || 'Open'}</div>
-                            </div>
-                        </div>
-
-                        {/* Location */}
-                        <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: '0.85rem', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, fontWeight: 600 }}>Location</div>
-                            <div style={{ fontSize: '0.95rem', color: '#cbd5e1' }}>
-                                <MapPin size={16} style={{ display: 'inline', marginRight: 6 }} />
-                                {selectedDefect.nearest_station} (Lat: {selectedDefect.latitude}, Lon: {selectedDefect.longitude})
-                            </div>
-                        </div>
-
-                        {/* Timestamp */}
-                        <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: '0.85rem', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, fontWeight: 600 }}>Detected At</div>
-                            <div style={{ fontSize: '0.95rem', color: '#cbd5e1' }}>
-                                <Clock size={16} style={{ display: 'inline', marginRight: 6 }} />
-                                {new Date(selectedDefect.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-                            </div>
-                        </div>
-
-                        {/* Root Cause */}
-                        <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: '0.85rem', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, fontWeight: 600 }}>Root Cause</div>
-                            <p style={{ fontSize: '0.95rem', lineHeight: '1.5', color: '#cbd5e1', margin: 0 }}>{selectedDefect.root_cause || "Analyzing..."}</p>
-                        </div>
-
-                        {/* Immediate Action */}
-                        <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: '0.85rem', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, fontWeight: 600 }}>Immediate Action</div>
-                            <p style={{ fontSize: '0.95rem', lineHeight: '1.5', color: '#cbd5e1', margin: 0 }}>{selectedDefect.action_required || "Pending..."}</p>
-                        </div>
-
-                        {/* Resolution Steps */}
-                        <div style={{ marginBottom: 24 }}>
-                            <div style={{ fontSize: '0.85rem', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, fontWeight: 600 }}>Resolution Steps</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                            {/* Left Column: Visual Data */}
                             <div>
-                                {selectedDefect.resolution_steps ? (
-                                    selectedDefect.resolution_steps.split('. ').map((step, i) => (
-                                        step.trim() && (
-                                            <div key={i} style={{
-                                                padding: '10px 14px',
-                                                background: 'rgba(99, 102, 241, 0.1)',
-                                                border: '1px solid rgba(99, 102, 241, 0.2)',
-                                                borderRadius: '8px',
-                                                marginBottom: '8px',
-                                                fontSize: '0.9rem',
-                                                lineHeight: '1.4',
-                                                color: '#cbd5e1'
-                                            }}>
-                                                {i + 1}. {step}
-                                            </div>
-                                        )
-                                    ))
-                                ) : (
-                                    <p style={{ color: '#94a3b8' }}>Fetching AI recommendations...</p>
+                                <div style={{ position: 'relative', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                                    <img
+                                        src={selectedDefect.image_url.startsWith('http') ? selectedDefect.image_url : "https://via.placeholder.com/400x250?text=No+Image"}
+                                        alt="Defect"
+                                        style={{ width: '100%', display: 'block' }}
+                                        onError={(e) => { e.target.src = "https://via.placeholder.com/400x250?text=Error+Loading+Image" }}
+                                    />
+                                    <div style={{ position: 'absolute', top: '10px', left: '10px', padding: '4px 8px', background: 'rgba(11, 18, 32, 0.8)', color: 'var(--accent-blue)', fontSize: '0.6rem', fontFamily: 'var(--font-mono)', border: '1px solid var(--accent-blue)' }}>
+                                        OPTICAL_FRAME_CAPTURE
+                                    </div>
+                                </div>
+
+                                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '16px' }}>
+                                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>STATUS_CHECKLIST</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>INTEGRITY_INDEX:</span>
+                                            <span style={{ color: 'var(--status-safe)', fontWeight: 800 }}>STABLE</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>AI_CONFIDENCE:</span>
+                                            <span style={{ color: 'var(--accent-blue)', fontWeight: 800 }}>{selectedDefect.confidence}%</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: 'var(--text-secondary)' }}>ALERT_PROTOCOL:</span>
+                                            <span style={{ color: selectedDefect.severity === 'Critical' ? 'var(--status-critical)' : 'var(--status-warning)', fontWeight: 800 }}>{selectedDefect.severity.toUpperCase()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column: Technical Details */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div>
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px', fontFamily: 'var(--font-mono)' }}>LOCATION_NODE</div>
+                                    <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+                                        {selectedDefect.nearest_station?.toUpperCase()} // LAT: {selectedDefect.latitude} LON: {selectedDefect.longitude}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px', fontFamily: 'var(--font-mono)' }}>DETECTED_TIMESTAMP</div>
+                                    <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+                                        {new Date(selectedDefect.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }).toUpperCase()}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px', fontFamily: 'var(--font-mono)' }}>DIAGNOSTIC_ASSESSMENT</div>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: '1.4', margin: 0 }}>
+                                        {selectedDefect.root_cause || "ASSESSMENT_IN_PROGRESS..."}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px', fontFamily: 'var(--font-mono)' }}>REQUIRED_PROTOCOL</div>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: '1.4', margin: 0 }}>
+                                        {selectedDefect.action_required || "AWAITING_COMMANDER_ORDER..."}
+                                    </p>
+                                </div>
+
+                                {/* Resolution Steps */}
+                                {selectedDefect.resolution_steps && (
+                                    <div style={{
+                                        marginTop: '16px',
+                                        padding: '16px',
+                                        background: 'linear-gradient(135deg, rgba(0, 230, 118, 0.03) 0%, rgba(77, 163, 255, 0.03) 100%)',
+                                        border: '1px solid var(--status-safe)',
+                                        borderRadius: '8px'
+                                    }}>
+                                        <div style={{
+                                            fontSize: '0.7rem',
+                                            color: 'var(--status-safe)',
+                                            fontWeight: 900,
+                                            textTransform: 'uppercase',
+                                            marginBottom: '12px',
+                                            fontFamily: 'var(--font-mono)',
+                                            paddingBottom: '8px',
+                                            borderBottom: '2px solid rgba(0, 230, 118, 0.2)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}>
+                                            <span style={{ fontSize: '1rem' }}>✓</span>
+                                            RECOMMENDED RESOLUTION PROTOCOL
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {selectedDefect.resolution_steps
+                                                .replace(/[\[\]'"]/g, '')
+                                                .split(/\d+\.\s*|\. /)
+                                                .filter(step => step.trim())
+                                                .map((step, i) => (
+                                                    <div key={i} style={{
+                                                        padding: '10px 12px',
+                                                        background: 'var(--bg-secondary)',
+                                                        border: '1px solid var(--border-color)',
+                                                        borderLeft: '3px solid var(--status-safe)',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.75rem',
+                                                        color: 'var(--text-primary)',
+                                                        display: 'flex',
+                                                        gap: '10px',
+                                                        alignItems: 'flex-start'
+                                                    }}>
+                                                        <div style={{
+                                                            minWidth: '24px',
+                                                            height: '24px',
+                                                            background: 'var(--status-safe)',
+                                                            color: 'var(--bg-primary)',
+                                                            borderRadius: '50%',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontWeight: 900,
+                                                            fontSize: '0.7rem',
+                                                            fontFamily: 'var(--font-mono)',
+                                                            flexShrink: 0
+                                                        }}>
+                                                            {i + 1}
+                                                        </div>
+                                                        <span style={{ flex: 1, paddingTop: '2px' }}>
+                                                            {step.trim()}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
                                 )}
+
+                                {/* Action Buttons */}
+                                <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+                                    {selectedDefect.status === 'Open' ? (
+                                        <button
+                                            onClick={handleMarkResolved}
+                                            disabled={resolving}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px',
+                                                background: 'var(--status-safe)',
+                                                border: 'none',
+                                                color: 'var(--bg-primary)',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 900,
+                                                fontFamily: 'var(--font-mono)',
+                                                cursor: resolving ? 'not-allowed' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '10px',
+                                                textTransform: 'uppercase'
+                                            }}
+                                        >
+                                            <CheckCircle size={16} />
+                                            {resolving ? 'COMMITTING_RESOLUTION...' : 'EXECUTE_RESOLUTION_PROTOCOL'}
+                                        </button>
+                                    ) : (
+                                        user?.role === 'Admin' && (
+                                            <>
+                                                <button
+                                                    onClick={handleReopen}
+                                                    disabled={reopening}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '12px',
+                                                        background: 'var(--status-warning)',
+                                                        border: 'none',
+                                                        color: 'var(--bg-primary)',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 900,
+                                                        fontFamily: 'var(--font-mono)',
+                                                        cursor: reopening ? 'not-allowed' : 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '10px',
+                                                        textTransform: 'uppercase'
+                                                    }}
+                                                >
+                                                    <AlertTriangle size={16} />
+                                                    {reopening ? 'REOPENING_CASE...' : 'REOPEN_INVESTIGATION'}
+                                                </button>
+
+                                                <button
+                                                    onClick={handleDelete}
+                                                    disabled={deleting}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '12px',
+                                                        background: 'var(--status-critical)',
+                                                        border: 'none',
+                                                        color: 'var(--bg-primary)',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 900,
+                                                        fontFamily: 'var(--font-mono)',
+                                                        cursor: deleting ? 'not-allowed' : 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '10px',
+                                                        textTransform: 'uppercase',
+                                                        marginTop: '12px'
+                                                    }}
+                                                >
+                                                    <X size={16} />
+                                                    {deleting ? 'DELETING_REPORT...' : 'DELETE_REPORT'}
+                                                </button>
+                                            </>
+                                        )
+                                    )}
+                                </div>
                             </div>
                         </div>
-
-                        {/* Action Buttons */}
-                        {selectedDefect.status === 'Open' ? (
-                            <button
-                                onClick={handleMarkResolved}
-                                disabled={resolving}
-                                style={{
-                                    width: '100%',
-                                    padding: '14px',
-                                    background: resolving ? 'rgba(16, 185, 129, 0.3)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                    border: 'none',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    fontWeight: 600,
-                                    cursor: resolving ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '10px'
-                                }}
-                                onMouseOver={(e) => !resolving && (e.currentTarget.style.transform = 'translateY(-2px)')}
-                                onMouseOut={(e) => !resolving && (e.currentTarget.style.transform = 'translateY(0)')}
-                            >
-                                <CheckCircle size={20} />
-                                {resolving ? 'Marking as Resolved...' : 'Mark as Resolved'}
-                            </button>
-                        ) : (
-                            user?.role === 'Admin' && (
-                                <button
-                                    onClick={handleReopen}
-                                    disabled={reopening}
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px',
-                                        background: reopening ? 'rgba(251, 191, 36, 0.3)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontWeight: 600,
-                                        cursor: reopening ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '10px'
-                                    }}
-                                    onMouseOver={(e) => !reopening && (e.currentTarget.style.transform = 'translateY(-2px)')}
-                                    onMouseOut={(e) => !reopening && (e.currentTarget.style.transform = 'translateY(0)')}
-                                >
-                                    <AlertTriangle size={20} />
-                                    {reopening ? 'Reopening Defect...' : 'Reopen Defect'}
-                                </button>
-                            )
-                        )}
                     </div>
                 </>
             )}

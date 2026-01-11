@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Camera, Upload, Video, Image as ImageIcon, AlertCircle, CheckCircle2, Loader, Activity, MapPin, Play, Square, Shield, Zap, Database, Cpu, Clock } from 'lucide-react';
 
 const API_URL = "http://localhost:8000";
 
 const DronePage = () => {
     const { token } = useAuth();
+    const { theme } = useTheme();
     // Inspection flow state
     const [inspectionStarted, setInspectionStarted] = useState(false);
     const [mode, setMode] = useState(null); // 'camera' or 'upload'
@@ -238,24 +240,28 @@ const DronePage = () => {
     };
 
     return (
-        <div style={{ padding: '30px', height: 'calc(100vh - 70px)', overflow: 'auto' }}>
-            {/* Header */}
-            <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+        <div style={{ padding: '24px', height: 'calc(100vh - 60px)', overflow: 'auto', background: 'transparent' }}>
+            {/* Header - Industrial Control Style */}
+            <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
                 <div>
                     <h1 style={{
-                        fontSize: '2rem',
+                        fontSize: '1.5rem',
                         margin: 0,
-                        marginBottom: '8px',
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 700,
-                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent'
+                        marginBottom: '4px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        color: 'var(--text-primary)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
                     }}>
-                        🚁 Drone Inspection Control
+                        <div style={{ width: '8px', height: '20px', background: 'var(--accent-blue)' }}></div>
+                        AI SURVEILLANCE MODULE [S-7]
                     </h1>
-                    <p style={{ color: '#8b8d98', fontSize: '0.95rem', margin: 0 }}>
-                        Real-time railway track defect detection using AI-powered vision analysis
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        REAL-TIME ANOMALY DETECTION ENGINE // SECURE_LINK_ESTABLISHED
                     </p>
                 </div>
 
@@ -263,24 +269,25 @@ const DronePage = () => {
                     <button
                         onClick={reset}
                         style={{
-                            padding: '12px 24px',
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            borderRadius: '12px',
-                            color: '#fca5a5',
+                            padding: '10px 20px',
+                            background: 'transparent',
+                            border: '1px solid var(--status-critical)',
+                            color: 'var(--status-critical)',
                             cursor: 'pointer',
-                            fontSize: '1rem',
-                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
-                            transition: 'all 0.3s ease'
+                            transition: 'all 0.2s ease',
+                            textTransform: 'uppercase'
                         }}
-                        onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)')}
-                        onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
+                        onMouseOver={(e) => (e.currentTarget.style.background = 'var(--status-critical)', e.currentTarget.style.color = 'var(--bg-primary)')}
+                        onMouseOut={(e) => (e.currentTarget.style.background = 'transparent', e.currentTarget.style.color = 'var(--status-critical)')}
                     >
-                        <Square size={20} fill="#ef4444" />
-                        Stop Inspection
+                        <Square size={14} fill="currentColor" />
+                        TERMINATE_SESSION
                     </button>
                 )}
             </div>
@@ -431,42 +438,232 @@ const DronePage = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    minHeight: '600px',
-                    gap: '50px'
+                    minHeight: '400px',
+                    gap: '48px'
                 }}>
-                    {/* System Status Row */}
+                    <div style={{
+                        maxWidth: '900px',
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(280px, 320px) 1fr',
+                        gap: '24px',
+                        background: 'transparent',
+                        alignItems: 'stretch'
+                    }}>
+                        {/* Drone Sample Video Preview - Compact Mini-Feed */}
+                        <div style={{
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '8px',
+                                borderBottom: '1px solid var(--border-color)',
+                                paddingBottom: '6px'
+                            }}>
+                                <div style={{
+                                    fontSize: '0.65rem',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontWeight: 800,
+                                    color: 'var(--text-primary)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}>
+                                    <Video size={12} color="var(--accent-blue)" />
+                                    DRONE_SAMPLE [PREVIEW]
+                                </div>
+                                <div style={{
+                                    fontSize: '0.55rem',
+                                    padding: '2px 6px',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--status-safe)',
+                                    color: 'var(--status-safe)',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontWeight: 800
+                                }}>
+                                    SIM_LIVE
+                                </div>
+                            </div>
+                            <div style={{
+                                position: 'relative',
+                                background: '#000',
+                                border: '1px solid var(--border-color)',
+                                overflow: 'hidden',
+                                aspectRatio: '16/9'
+                            }}>
+                                <video
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        display: 'block',
+                                        objectFit: 'cover'
+                                    }}
+                                >
+                                    <source src="/drone_shot.mp4" type="video/mp4" />
+                                </video>
+                                {/* Mini Overlay Elements */}
+                                <div style={{ position: 'absolute', top: 5, left: 5, borderTop: '1px solid var(--accent-blue)', borderLeft: '1px solid var(--accent-blue)', width: 10, height: 10 }}></div>
+                                <div style={{ position: 'absolute', top: 5, right: 5, borderTop: '1px solid var(--accent-blue)', borderRight: '1px solid var(--accent-blue)', width: 10, height: 10 }}></div>
+                                <div style={{ position: 'absolute', bottom: 5, left: 5, borderBottom: '1px solid var(--accent-blue)', borderLeft: '1px solid var(--accent-blue)', width: 10, height: 10 }}></div>
+                                <div style={{ position: 'absolute', bottom: 5, right: 5, borderBottom: '1px solid var(--accent-blue)', borderRight: '1px solid var(--accent-blue)', width: 10, height: 10 }}></div>
+                            </div>
+                            <div style={{
+                                marginTop: '6px',
+                                fontSize: '0.55rem',
+                                color: 'var(--text-secondary)',
+                                fontFamily: 'var(--font-mono)',
+                                textAlign: 'center',
+                                letterSpacing: '0.5px'
+                            }}>
+                                SAMPLE_FEED_ID: DSS-07
+                            </div>
+                        </div>
+
+                        {/* Guidelines Section - High-End HUD Redesign (Theme-Aware) */}
+                        <div style={{
+                            background: theme === 'dark' ? 'rgba(5, 12, 22, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+                            backdropFilter: 'blur(12px)',
+                            border: theme === 'dark' ? '1px solid rgba(77, 163, 255, 0.15)' : '1px solid rgba(37, 99, 235, 0.2)',
+                            padding: '24px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '32px',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            boxShadow: theme === 'light' ? '0 8px 32px rgba(0, 0, 0, 0.05)' : 'none'
+                        }}>
+                            {/* Decorative Corner Brackets */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: 12, height: 12, borderTop: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, borderLeft: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, opacity: theme === 'light' ? 0.6 : 1 }}></div>
+                            <div style={{ position: 'absolute', top: 0, right: 0, width: 12, height: 12, borderTop: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, borderRight: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, opacity: theme === 'light' ? 0.6 : 1 }}></div>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, width: 12, height: 12, borderBottom: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, borderLeft: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, opacity: theme === 'light' ? 0.6 : 1 }}></div>
+                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderBottom: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, borderRight: `2px solid ${theme === 'dark' ? 'var(--accent-blue)' : 'var(--accent-blue)'}`, opacity: theme === 'light' ? 0.6 : 1 }}></div>
+
+                            {/* Scanline Overlay */}
+                            <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: '1px',
+                                background: theme === 'dark' ? 'rgba(77, 163, 255, 0.05)' : 'rgba(37, 99, 235, 0.05)',
+                                zIndex: 1,
+                                pointerEvents: 'none',
+                                animation: 'scanline 4s linear infinite'
+                            }}></div>
+
+                            <div style={{ position: 'relative', zIndex: 2 }}>
+                                <h4 style={{
+                                    color: theme === 'dark' ? '#fff' : 'var(--text-primary)',
+                                    marginBottom: '16px',
+                                    fontSize: '0.8rem',
+                                    fontFamily: 'var(--font-mono)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '2px',
+                                    fontWeight: 900
+                                }}>
+                                    <div style={{ padding: '4px', background: 'rgba(255, 170, 0, 0.1)', border: '1px solid var(--status-warning)' }}>
+                                        <Zap size={14} color="var(--status-warning)" />
+                                    </div>
+                                    PROTOCOL_SEC
+                                </h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {[
+                                        'STABLE TELEMETRY LINK REQUIRED',
+                                        'AI AUTO-FLAG ANOMALIES',
+                                        'MODULE_S7 ENCRYPTION ACTIVE'
+                                    ].map((text, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ width: '4px', height: '4px', background: 'var(--status-warning)', boxShadow: theme === 'dark' ? '0 0 5px var(--status-warning)' : 'none' }}></div>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{text}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ position: 'relative', zIndex: 2 }}>
+                                <h4 style={{
+                                    color: theme === 'dark' ? '#fff' : 'var(--text-primary)',
+                                    marginBottom: '16px',
+                                    fontSize: '0.8rem',
+                                    fontFamily: 'var(--font-mono)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '2px',
+                                    fontWeight: 900
+                                }}>
+                                    <div style={{ padding: '4px', background: 'rgba(0, 255, 170, 0.1)', border: '1px solid var(--status-safe)' }}>
+                                        <Shield size={14} color="var(--status-safe)" />
+                                    </div>
+                                    INTEGRITY_LOG
+                                </h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {[
+                                        'GEO-TAGGING PER FRAME ENABLED',
+                                        'MASTER ALERTS SYNCHRONIZED',
+                                        'SEC_LOG REAL-TIME GENERATION'
+                                    ].map((text, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ width: '4px', height: '4px', background: 'var(--status-safe)', boxShadow: theme === 'dark' ? '0 0 5px var(--status-safe)' : 'none' }}></div>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{text}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* System Status Row - Restored */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(4, 1fr)',
-                        gap: '20px',
+                        gap: '16px',
                         width: '100%',
-                        maxWidth: '900px'
+                        maxWidth: '800px'
                     }}>
                         {[
-                            { icon: <Cpu size={20} color="#6366f1" />, label: 'AI Engine', status: 'Ready' },
-                            { icon: <Shield size={20} color="#10b981" />, label: 'Security', status: 'Active' },
-                            { icon: <Database size={20} color="#fbbf24" />, label: 'Database', status: 'Connected' },
-                            { icon: <Clock size={20} color="#8b5cf6" />, label: 'Latency', status: '12ms' }
+                            { icon: <Cpu size={16} color="var(--accent-blue)" />, label: 'AI_ENGINE', status: 'READY' },
+                            { icon: <Shield size={16} color="var(--status-safe)" />, label: 'AUTH', status: 'ACTIVE' },
+                            { icon: <Database size={16} color="var(--status-warning)" />, label: 'DB_NODE', status: 'CONNECTED' },
+                            { icon: <Clock size={16} color="var(--accent-blue)" />, label: 'LATENCY', status: '0.8ms' }
                         ].map((item, idx) => (
                             <div key={idx} style={{
-                                background: 'rgba(19, 19, 26, 0.6)',
-                                border: '1px solid rgba(99, 102, 241, 0.2)',
-                                borderRadius: '16px',
-                                padding: '16px',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                padding: '12px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '12px'
+                                gap: '10px'
                             }}>
                                 <div style={{
-                                    padding: '8px',
-                                    background: 'rgba(99, 102, 241, 0.1)',
-                                    borderRadius: '10px'
+                                    padding: '6px',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--border-color)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}>
                                     {item.icon}
                                 </div>
                                 <div>
-                                    <div style={{ color: '#8b8d98', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</div>
-                                    <div style={{ color: 'white', fontWeight: 600, fontSize: '0.9rem' }}>{item.status}</div>
+                                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</div>
+                                    <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>{item.status}</div>
                                 </div>
                             </div>
                         ))}
@@ -476,70 +673,34 @@ const DronePage = () => {
                         <button
                             onClick={() => setInspectionStarted(true)}
                             style={{
-                                padding: '30px 60px',
-                                fontSize: '1.5rem',
-                                fontWeight: 700,
-                                fontFamily: 'Outfit, sans-serif',
-                                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '20px',
+                                padding: '16px 32px',
+                                fontSize: '1rem',
+                                fontWeight: 900,
+                                fontFamily: 'var(--font-mono)',
+                                background: 'transparent',
+                                color: 'var(--accent-blue)',
+                                border: '2px solid var(--accent-blue)',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '20px',
-                                boxShadow: '0 20px 50px rgba(99, 102, 241, 0.3)',
-                                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                                gap: '16px',
+                                boxShadow: 'var(--accent-glow)',
+                                transition: 'all 0.2s ease',
+                                textTransform: 'uppercase',
+                                letterSpacing: '2px'
                             }}
                             onMouseOver={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.05) translateY(-5px)';
-                                e.currentTarget.style.boxShadow = '0 30px 60px rgba(99, 102, 241, 0.5)';
+                                e.currentTarget.style.background = 'var(--accent-blue)';
+                                e.currentTarget.style.color = 'var(--bg-primary)';
                             }}
                             onMouseOut={(e) => {
-                                e.currentTarget.style.transform = 'scale(1) translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 20px 50px rgba(99, 102, 241, 0.3)';
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = 'var(--accent-blue)';
                             }}
                         >
-                            <Play size={32} fill="white" />
-                            Start Drone Inspection
+                            <Play size={20} fill="currentColor" />
+                            INITIALIZE_INSPECTION
                         </button>
-                        <p style={{ marginTop: '25px', color: '#8b8d98', fontSize: '1rem', maxWidth: '500px' }}>
-                            Initialize the AI-powered inspection suite to detect railway defects in real-time or via high-resolution image uploads.
-                        </p>
-                    </div>
-
-                    {/* Guidelines Section */}
-                    <div style={{
-                        maxWidth: '900px',
-                        width: '100%',
-                        background: 'rgba(19, 19, 26, 0.4)',
-                        border: '1px dashed rgba(99, 102, 241, 0.3)',
-                        borderRadius: '20px',
-                        padding: '30px',
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '30px'
-                    }}>
-                        <div>
-                            <h4 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Zap size={18} color="#fbbf24" /> Active Inspection
-                            </h4>
-                            <ul style={{ color: '#8b8d98', fontSize: '0.9rem', margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
-                                <li>Ensure stable internet for live telemetry.</li>
-                                <li>AI models will automatically flag critical defects.</li>
-                                <li>Auto-analyze mode available for hands-free operation.</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Shield size={18} color="#10b981" /> Data Integrity
-                            </h4>
-                            <ul style={{ color: '#8b8d98', fontSize: '0.9rem', margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
-                                <li>All detections are geo-tagged and timestamped.</li>
-                                <li>Automated email alerts sent to Station Masters.</li>
-                                <li>Detailed analysis report generated for every flag.</li>
-                            </ul>
-                        </div>
                     </div>
                 </div>
             )}
@@ -549,7 +710,7 @@ const DronePage = () => {
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '20px',
+                    gap: '24px',
                     maxWidth: '800px',
                     margin: '0 auto'
                 }}>
@@ -557,41 +718,43 @@ const DronePage = () => {
                     <div
                         onClick={startCamera}
                         style={{
-                            background: 'rgba(19, 19, 26, 0.8)',
-                            backdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(99, 102, 241, 0.3)',
-                            borderRadius: '16px',
-                            padding: '40px 30px',
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            padding: '48px 32px',
                             cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
+                            transition: 'all 0.2s ease',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
                         }}
                         onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)';
-                            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.6)';
+                            e.currentTarget.style.borderColor = 'var(--accent-blue)';
+                            e.currentTarget.style.boxShadow = 'var(--accent-glow)';
                         }}
                         onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                            e.currentTarget.style.borderColor = 'var(--border-color)';
+                            e.currentTarget.style.boxShadow = 'none';
                         }}
                     >
                         <div style={{
-                            width: '80px',
-                            height: '80px',
-                            margin: '0 auto 20px',
-                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                            borderRadius: '50%',
+                            width: '64px',
+                            height: '64px',
+                            margin: '0 auto 24px',
+                            background: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            color: 'var(--accent-blue)'
                         }}>
-                            <Video size={40} color="white" />
+                            <Video size={32} />
                         </div>
-                        <h3 style={{ fontSize: '1.3rem', marginBottom: '8px', fontFamily: 'Outfit, sans-serif' }}>
-                            Live Camera Feed
+                        <h3 style={{ fontSize: '1rem', marginBottom: '8px', fontFamily: 'var(--font-mono)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            LIVE_OPTICAL_FEED
                         </h3>
-                        <p style={{ color: '#8b8d98', fontSize: '0.9rem', margin: 0 }}>
-                            Use webcam for real-time inspection
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', margin: 0, fontFamily: 'var(--font-mono)' }}>
+                            ESTABLISH REAL-TIME TELEMETRY LINK
                         </p>
                     </div>
 
@@ -599,54 +762,55 @@ const DronePage = () => {
                     <div
                         onClick={() => document.getElementById('imageInput').click()}
                         style={{
-                            background: 'rgba(19, 19, 26, 0.8)',
-                            backdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            borderRadius: '16px',
-                            padding: '40px 30px',
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            padding: '48px 32px',
                             cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            textAlign: 'center'
+                            transition: 'all 0.2s ease',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
                         }}
                         onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)';
-                            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+                            e.currentTarget.style.borderColor = 'var(--status-safe)';
+                            e.currentTarget.style.boxShadow = 'inset 0 0 10px rgba(0, 230, 118, 0.05)';
                         }}
                         onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                            e.currentTarget.style.borderColor = 'var(--border-color)';
+                            e.currentTarget.style.boxShadow = 'none';
                         }}
                     >
                         <div style={{
-                            width: '80px',
-                            height: '80px',
-                            margin: '0 auto 20px',
-                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                            borderRadius: '50%',
+                            width: '64px',
+                            height: '64px',
+                            margin: '0 auto 24px',
+                            background: 'var(--bg-primary)',
+                            border: '1px solid var(--border-color)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            color: 'var(--status-safe)'
                         }}>
-                            <Upload size={40} color="white" />
+                            <Upload size={32} />
                         </div>
-                        <h3 style={{ fontSize: '1.3rem', marginBottom: '8px', fontFamily: 'Outfit, sans-serif' }}>
-                            Upload Image
+                        <h3 style={{ fontSize: '1.1rem', marginBottom: '8px', fontFamily: 'var(--font-mono)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            STATIC_FRAME_ANALYSIS
                         </h3>
-                        <p style={{ color: '#8b8d98', fontSize: '0.9rem', margin: 0 }}>
-                            Test with saved railway track images
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', margin: 0, fontFamily: 'var(--font-mono)', marginBottom: 12 }}>
+                            IMPORT ARCHIVED HIGH-RES IMAGERY
                         </p>
                         <span style={{
                             display: 'inline-block',
-                            marginTop: '10px',
-                            padding: '4px 10px',
-                            background: 'rgba(251, 191, 36, 0.2)',
-                            border: '1px solid rgba(251, 191, 36, 0.4)',
-                            borderRadius: '6px',
-                            color: '#fbbf24',
-                            fontSize: '0.75rem',
-                            fontWeight: 600
+                            padding: '4px 12px',
+                            background: 'transparent',
+                            border: '1px solid var(--status-warning)',
+                            color: 'var(--status-warning)',
+                            fontSize: '0.6rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)'
                         }}>
-                            FOR TESTING
+                            TEST_PROTOCOL_ONLY
                         </span>
                     </div>
                     <input
@@ -661,14 +825,12 @@ const DronePage = () => {
 
             {/* Main Content Area */}
             {mode && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '20px', height: 'calc(100% - 150px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px', height: 'calc(100% - 120px)' }}>
                     {/* Left: Video/Image Display */}
                     <div style={{
-                        background: 'rgba(19, 19, 26, 0.8)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(99, 102, 241, 0.3)',
-                        borderRadius: '16px',
-                        padding: '20px',
+                        background: 'var(--bg-secondary)',
+                        border: '2px solid var(--border-color)',
+                        padding: '16px',
                         display: 'flex',
                         flexDirection: 'column'
                     }}>
@@ -676,108 +838,126 @@ const DronePage = () => {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: '20px'
+                            marginBottom: '16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            paddingBottom: '12px'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <h2 style={{ margin: 0, fontSize: '1.2rem', fontFamily: 'Outfit, sans-serif' }}>
-                                    {mode === 'camera' ? '📹 Live Feed' : '🖼️ Image Preview'}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <h2 style={{ margin: 0, fontSize: '0.85rem', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    {mode === 'camera' ? 'OPTICAL_FEED_01 [LIVE]' : 'FRAME_PREVIEW_S7'}
                                 </h2>
                                 {mode === 'camera' && (
                                     <div style={{
-                                        fontSize: '0.75rem',
+                                        fontSize: '0.65rem',
                                         padding: '4px 10px',
-                                        background: 'rgba(139, 92, 246, 0.15)',
-                                        border: '1px solid rgba(139, 92, 246, 0.3)',
-                                        borderRadius: '20px',
-                                        color: '#a5b4fc',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--accent-blue)',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px'
+                                        gap: '8px',
+                                        fontFamily: 'var(--font-mono)',
+                                        fontWeight: 800
                                     }}>
-                                        <MapPin size={14} />
-                                        <span>{liveLocation.label}: {liveLocation.lat.toFixed(4)}, {liveLocation.lon.toFixed(4)}</span>
+                                        <MapPin size={12} />
+                                        <span>GPS: {liveLocation.lat.toFixed(6)}N, {liveLocation.lon.toFixed(6)}E</span>
                                     </div>
                                 )}
                             </div>
                             <button
                                 onClick={reset}
                                 style={{
-                                    padding: '8px 16px',
-                                    background: 'rgba(239, 68, 68, 0.2)',
-                                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                                    borderRadius: '8px',
-                                    color: '#fca5a5',
+                                    padding: '6px 12px',
+                                    background: 'transparent',
+                                    border: '1px solid var(--text-secondary)',
+                                    color: 'var(--text-secondary)',
                                     cursor: 'pointer',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 600
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    fontFamily: 'var(--font-mono)',
+                                    textTransform: 'uppercase'
                                 }}
                             >
-                                Reset
+                                BACK
                             </button>
                         </div>
 
                         {/* Video Feed */}
                         {mode === 'camera' && (
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                <video
-                                    ref={videoRef}
-                                    autoPlay
-                                    playsInline
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                        borderRadius: '12px',
-                                        background: '#000'
-                                    }}
-                                />
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ position: 'relative', flex: 1, background: '#000', border: '1px solid var(--border-color)' }}>
+                                    <video
+                                        ref={videoRef}
+                                        autoPlay
+                                        playsInline
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'contain'
+                                        }}
+                                    />
+                                    {/* Overlay elements for futuristic look */}
+                                    <div style={{ position: 'absolute', top: 20, left: 20, borderTop: '2px solid var(--accent-blue)', borderLeft: '2px solid var(--accent-blue)', width: 40, height: 40 }}></div>
+                                    <div style={{ position: 'absolute', top: 20, right: 20, borderTop: '2px solid var(--accent-blue)', borderRight: '2px solid var(--accent-blue)', width: 40, height: 40 }}></div>
+                                    <div style={{ position: 'absolute', bottom: 20, left: 20, borderBottom: '2px solid var(--accent-blue)', borderLeft: '2px solid var(--accent-blue)', width: 40, height: 40 }}></div>
+                                    <div style={{ position: 'absolute', bottom: 20, right: 20, borderBottom: '2px solid var(--accent-blue)', borderRight: '2px solid var(--accent-blue)', width: 40, height: 40 }}></div>
+
+                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', border: '1px solid rgba(77, 163, 255, 0.2)', borderRadius: '50%', width: 200, height: 200, pointerEvents: 'none' }}></div>
+                                </div>
                                 <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '12px' }}>
                                     <button
                                         onClick={captureFrame}
                                         disabled={capturing || processing}
                                         style={{
                                             flex: 2,
-                                            padding: '14px',
-                                            background: capturing ? 'rgba(16, 185, 129, 0.3)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '1rem',
-                                            fontWeight: 600,
+                                            padding: '16px',
+                                            background: capturing ? 'var(--bg-primary)' : 'transparent',
+                                            border: '1px solid var(--status-safe)',
+                                            color: 'var(--status-safe)',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 900,
+                                            fontFamily: 'var(--font-mono)',
                                             cursor: capturing || processing ? 'not-allowed' : 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '10px'
+                                            gap: '12px',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '1px',
+                                            transition: 'all 0.2s ease'
                                         }}
+                                        onMouseOver={(e) => !capturing && !processing && (e.currentTarget.style.background = 'var(--status-safe)', e.currentTarget.style.color = 'var(--bg-primary)')}
+                                        onMouseOut={(e) => !capturing && !processing && (e.currentTarget.style.background = 'transparent', e.currentTarget.style.color = 'var(--status-safe)')}
                                     >
-                                        {processing ? <Loader className="spinning" size={20} /> : <Camera size={20} />}
-                                        {processing ? 'Processing...' : capturing ? 'Captured!' : 'Capture & Analyze Frame'}
+                                        {processing ? <Loader className="spinning" size={16} /> : <Camera size={16} />}
+                                        {processing ? 'ANALYZING_FRAME...' : capturing ? 'FRAME_LOCKED' : 'CAPTURE_AND_ANALYZE'}
                                     </button>
 
                                     <button
                                         onClick={() => setAutoAnalyze(!autoAnalyze)}
                                         style={{
                                             flex: 1,
-                                            padding: '14px',
-                                            background: autoAnalyze ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' : 'rgba(99, 102, 241, 0.1)',
-                                            border: `1px solid ${autoAnalyze ? 'rgba(139, 92, 246, 0.6)' : 'rgba(99, 102, 241, 0.3)'}`,
-                                            borderRadius: '12px',
-                                            color: autoAnalyze ? 'white' : '#8b8d98',
-                                            fontSize: '1rem',
-                                            fontWeight: 600,
+                                            padding: '16px',
+                                            background: autoAnalyze ? 'var(--accent-blue)' : 'transparent',
+                                            border: `1px solid var(--accent-blue)`,
+                                            color: autoAnalyze ? 'var(--bg-primary)' : 'var(--accent-blue)',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 900,
+                                            fontFamily: 'var(--font-mono)',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '10px',
-                                            transition: 'all 0.3s ease'
+                                            gap: '12px',
+                                            transition: 'all 0.2s ease',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '1px'
                                         }}
                                     >
-                                        <Activity size={20} className={autoAnalyze ? 'pulse' : ''} />
-                                        {autoAnalyze ? 'Auto ON' : 'Auto Off'}
+                                        <Activity size={16} className={autoAnalyze ? 'pulse' : ''} />
+                                        {autoAnalyze ? 'AUTO_SCAN: ON' : 'AUTO_SCAN: OFF'}
                                     </button>
                                 </div>
                             </div>
@@ -785,39 +965,47 @@ const DronePage = () => {
 
                         {/* Image Preview */}
                         {mode === 'upload' && previewUrl && (
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                <img
-                                    src={previewUrl}
-                                    alt="Preview"
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                        borderRadius: '12px',
-                                        border: '1px solid rgba(99, 102, 241, 0.2)'
-                                    }}
-                                />
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ flex: 1, background: '#000', border: '1px solid var(--border-color)', position: 'relative' }}>
+                                    <img
+                                        src={previewUrl}
+                                        alt="Preview"
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'contain'
+                                        }}
+                                    />
+                                    {/* Medical/Science Style Crosshair */}
+                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', border: '1px solid rgba(77, 163, 255, 0.3)', width: 100, height: 100, borderRadius: '50%' }}></div>
+                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', height: 120, width: 1, background: 'rgba(77, 163, 255, 0.2)' }}></div>
+                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 120, height: 1, background: 'rgba(77, 163, 255, 0.2)' }}></div>
+                                </div>
 
                                 <button
                                     onClick={processUploadedImage}
                                     disabled={processing}
                                     style={{
-                                        padding: '14px',
-                                        background: processing ? 'rgba(99, 102, 241, 0.3)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '1rem',
-                                        fontWeight: 600,
+                                        padding: '16px',
+                                        background: processing ? 'var(--bg-primary)' : 'transparent',
+                                        border: '1px solid var(--accent-blue)',
+                                        color: 'var(--accent-blue)',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 900,
+                                        fontFamily: 'var(--font-mono)',
                                         cursor: processing ? 'not-allowed' : 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '10px'
+                                        gap: '12px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '1px'
                                     }}
+                                    onMouseOver={(e) => !processing && (e.currentTarget.style.background = 'var(--accent-blue)', e.currentTarget.style.color = 'var(--bg-primary)')}
+                                    onMouseOut={(e) => !processing && (e.currentTarget.style.background = 'transparent', e.currentTarget.style.color = 'var(--accent-blue)')}
                                 >
-                                    {processing ? <Loader className="spinning" size={20} /> : <ImageIcon size={20} />}
-                                    {processing ? 'Analyzing...' : 'Analyze Image'}
+                                    {processing ? <Loader className="spinning" size={16} /> : <ImageIcon size={16} />}
+                                    {processing ? 'EXECUTING_ENGINE...' : 'INIT_FRAME_ANALYSIS'}
                                 </button>
                             </div>
                         )}
@@ -825,89 +1013,93 @@ const DronePage = () => {
 
                     {/* Right: Results Panel */}
                     <div style={{
-                        background: 'rgba(19, 19, 26, 0.8)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(99, 102, 241, 0.3)',
-                        borderRadius: '16px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
                         padding: '20px',
-                        overflowY: 'auto'
+                        overflowY: 'auto',
+                        position: 'relative'
                     }}>
-                        <h2 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontFamily: 'Outfit, sans-serif' }}>
-                            📊 Analysis Results
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'var(--accent-blue)', opacity: 0.3 }}></div>
+                        <h2 style={{ margin: '0 0 20px 0', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '2px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+                            [DIAGNOSTIC_REPORT]
                         </h2>
 
                         {/* Error */}
                         {error && (
                             <div style={{
                                 padding: '12px',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: '1px solid rgba(239, 68, 68, 0.4)',
-                                borderRadius: '10px',
-                                color: '#fca5a5',
-                                fontSize: '0.9rem',
+                                background: 'rgba(255, 59, 59, 0.05)',
+                                border: '1px solid var(--status-critical)',
+                                color: 'var(--status-critical)',
+                                fontSize: '0.7rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px'
+                                gap: '10px',
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 800,
+                                marginBottom: '20px',
+                                textTransform: 'uppercase'
                             }}>
-                                <AlertCircle size={18} />
-                                {error}
+                                <AlertCircle size={14} />
+                                ENGINE_ERR: {error}
                             </div>
                         )}
 
                         {/* Result */}
                         {result && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 {/* Status Badge */}
                                 <div style={{
-                                    padding: '12px',
-                                    background: result.status === 'defect_detected'
-                                        ? 'rgba(239, 68, 68, 0.1)'
-                                        : result.status === 'no_defect'
-                                            ? 'rgba(16, 185, 129, 0.1)'
-                                            : 'rgba(251, 191, 36, 0.1)',
+                                    padding: '16px',
+                                    background: 'var(--bg-primary)',
                                     border: `1px solid ${result.status === 'defect_detected'
-                                        ? 'rgba(239, 68, 68, 0.4)'
+                                        ? 'var(--status-critical)'
                                         : result.status === 'no_defect'
-                                            ? 'rgba(16, 185, 129, 0.4)'
-                                            : 'rgba(251, 191, 36, 0.4)'}`,
-                                    borderRadius: '10px',
+                                            ? 'var(--status-safe)'
+                                            : 'var(--status-warning)'}`,
                                     color: result.status === 'defect_detected'
-                                        ? '#fca5a5'
+                                        ? 'var(--status-critical)'
                                         : result.status === 'no_defect'
-                                            ? '#6ee7b7'
-                                            : '#fbbf24',
-                                    fontSize: '0.9rem',
+                                            ? 'var(--status-safe)'
+                                            : 'var(--status-warning)',
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontWeight: 900,
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px'
+                                    gap: '12px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px'
                                 }}>
                                     {result.status === 'defect_detected' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-                                    {result.status === 'defect_detected' ? 'Defect Detected!' : result.status === 'no_defect' ? 'No Defect Found' : 'Low Confidence'}
+                                    {result.status === 'defect_detected' ? 'ANOMALY_CONFIRMED' : result.status === 'no_defect' ? 'CLEAR_SCAN_OK' : 'LOW_SIGNAL_WEAK'}
                                 </div>
 
                                 {/* ML Model Info */}
                                 <div style={{
-                                    padding: '12px',
-                                    background: 'rgba(99, 102, 241, 0.1)',
-                                    borderRadius: '8px'
+                                    padding: '16px',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--border-color)'
                                 }}>
-                                    <div style={{ fontSize: '0.75rem', color: '#8b8d98', marginBottom: '4px' }}>ML Model Prediction</div>
-                                    <div style={{ fontSize: '1rem', fontWeight: 600 }}>{result.prediction}</div>
-                                    <div style={{ fontSize: '0.85rem', color: '#8b5cf6', marginTop: '4px' }}>
-                                        Confidence: {result.confidence}%
+                                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)', fontWeight: 800, textTransform: 'uppercase' }}>NEURAL_NET_PREDICTION</div>
+                                    <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{result.prediction}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', marginTop: '8px', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
+                                        CONFIDENCE: {result.confidence}%
                                     </div>
                                 </div>
 
                                 {/* Message for non-defects */}
                                 {result.message && (
                                     <div style={{
-                                        padding: '12px',
-                                        background: 'rgba(99, 102, 241, 0.1)',
-                                        borderRadius: '8px',
-                                        fontSize: '0.9rem',
-                                        color: '#cbd5e1'
+                                        padding: '16px',
+                                        background: 'rgba(18, 26, 47, 0.4)',
+                                        border: '1px solid var(--border-color)',
+                                        fontSize: '0.75rem',
+                                        color: 'var(--text-secondary)',
+                                        fontFamily: 'var(--font-mono)',
+                                        lineHeight: '1.6'
                                     }}>
-                                        {result.message}
+                                        {result.message.toUpperCase()}
                                     </div>
                                 )}
 
@@ -916,47 +1108,49 @@ const DronePage = () => {
                                     <>
                                         {/* Defect Info */}
                                         <div style={{
-                                            padding: '15px',
-                                            background: result.severity === 'Critical' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                                            border: `1px solid ${result.severity === 'Critical' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(99, 102, 241, 0.4)'}`,
-                                            borderRadius: '10px'
+                                            padding: '16px',
+                                            background: result.severity === 'Critical' ? 'rgba(255, 59, 59, 0.05)' : 'var(--bg-primary)',
+                                            border: `1px solid ${result.severity === 'Critical' ? 'var(--status-critical)' : 'var(--border-color)'}`
                                         }}>
-                                            <div style={{ fontSize: '0.8rem', color: '#8b8d98', marginBottom: '4px' }}>Defect Type</div>
-                                            <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{result.defect_type}</div>
+                                            <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)', fontWeight: 800, textTransform: 'uppercase' }}>ANOMALY_CLASSIFICATION</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>{result.defect_type}</div>
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             <div style={{
                                                 padding: '12px',
-                                                background: 'rgba(99, 102, 241, 0.1)',
-                                                borderRadius: '8px'
+                                                background: 'var(--bg-primary)',
+                                                border: '1px solid var(--border-color)'
                                             }}>
-                                                <div style={{ fontSize: '0.75rem', color: '#8b8d98', marginBottom: '4px' }}>Severity</div>
+                                                <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>SEVERITY_LEVEL</div>
                                                 <div style={{
-                                                    fontSize: '1rem',
-                                                    fontWeight: 600,
-                                                    color: result.severity === 'Critical' ? '#ef4444' : '#6366f1'
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 900,
+                                                    fontFamily: 'var(--font-mono)',
+                                                    color: result.severity === 'Critical' ? 'var(--status-critical)' : 'var(--accent-blue)',
+                                                    textTransform: 'uppercase'
                                                 }}>
                                                     {result.severity}
                                                 </div>
                                             </div>
                                             <div style={{
                                                 padding: '12px',
-                                                background: 'rgba(99, 102, 241, 0.1)',
-                                                borderRadius: '8px'
+                                                background: 'var(--bg-primary)',
+                                                border: '1px solid var(--border-color)'
                                             }}>
-                                                <div style={{ fontSize: '0.75rem', color: '#8b8d98', marginBottom: '4px' }}>Defect ID</div>
-                                                <div style={{ fontSize: '1rem', fontWeight: 600 }}>#{result.id}</div>
+                                                <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>ASSET_TAG_ID</div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>#{result.id}</div>
                                             </div>
                                         </div>
 
                                         {/* Root Cause */}
                                         {result.root_cause && (
                                             <div>
-                                                <div style={{ fontSize: '0.8rem', color: '#8b5cf6', fontWeight: 600, marginBottom: '8px' }}>
-                                                    ROOT CAUSE
+                                                <div style={{ fontSize: '0.65rem', color: 'var(--accent-blue)', fontWeight: 800, marginBottom: '8px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '4px', height: '4px', background: 'currentColor' }}></div>
+                                                    PRIMARY_ETIOLOGY
                                                 </div>
-                                                <p style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#cbd5e1', margin: 0 }}>
+                                                <p style={{ fontSize: '0.7rem', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
                                                     {result.root_cause}
                                                 </p>
                                             </div>
@@ -964,11 +1158,12 @@ const DronePage = () => {
 
                                         {/* Action Required */}
                                         {result.action_required && (
-                                            <div>
-                                                <div style={{ fontSize: '0.8rem', color: '#8b5cf6', fontWeight: 600, marginBottom: '8px' }}>
-                                                    ACTION REQUIRED
+                                            <div style={{ marginTop: '12px' }}>
+                                                <div style={{ fontSize: '0.65rem', color: 'var(--status-warning)', fontWeight: 800, marginBottom: '8px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '4px', height: '4px', background: 'currentColor' }}></div>
+                                                    REMEDIATION_PROTOCOL
                                                 </div>
-                                                <p style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#cbd5e1', margin: 0 }}>
+                                                <p style={{ fontSize: '0.7rem', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
                                                     {result.action_required}
                                                 </p>
                                             </div>
@@ -982,12 +1177,18 @@ const DronePage = () => {
                         {!result && !error && (
                             <div style={{
                                 textAlign: 'center',
-                                padding: '40px 20px',
-                                color: '#8b8d98'
+                                padding: '60px 20px',
+                                color: 'var(--text-secondary)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '16px'
                             }}>
-                                <ImageIcon size={48} style={{ opacity: 0.5, marginBottom: '16px' }} />
-                                <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                                    {mode === 'camera' ? 'Capture a frame to analyze' : 'Click analyze to process the image'}
+                                <div style={{ padding: '20px', background: 'rgba(18, 26, 47, 0.4)', border: '1px solid var(--border-color)' }}>
+                                    <Activity size={32} style={{ opacity: 0.3 }} />
+                                </div>
+                                <p style={{ margin: 0, fontSize: '0.65rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    {mode === 'camera' ? 'AWAITING_FRAME_CAPTURE...' : 'READY_FOR_IMAGE_PROCESSING...'}
                                 </p>
                             </div>
                         )}
