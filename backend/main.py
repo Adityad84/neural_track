@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import text, Session
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
