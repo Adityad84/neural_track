@@ -57,6 +57,18 @@ def startup():
     database.init_db()
     db = SessionLocal()
     try:
+        if database.DATABASE_URL.startswith("postgresql"):
+            resync_sql = """
+            SELECT setval(pg_get_serial_sequence('stations', 'id'), coalesce(max(id), 1), max(id) IS NOT NULL) FROM stations;
+            SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 1), max(id) IS NOT NULL) FROM users;
+            SELECT setval(pg_get_serial_sequence('defects', 'id'), coalesce(max(id), 1), max(id) IS NOT NULL) FROM defects;
+            """
+            for statement in resync_sql.strip().split(';'):
+                if statement.strip():
+                    db.execute(text(statement))
+            db.commit()
+            print("✅ ID sequences resynced for PostgreSQL")
+        
         admin_exists = db.query(User).filter(User.role == "Admin").first()
         if not admin_exists:
             print("🚀 No Admin found in PostgreSQL. Seeding default Admin...")
@@ -70,6 +82,7 @@ def startup():
             db.add(admin)
             db.commit()
             print("✅ Default Admin created: admin / admin123")
+            
     except Exception as e:
         print(f"❌ Seeding error: {e}")
     finally:
