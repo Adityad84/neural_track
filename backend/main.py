@@ -55,6 +55,25 @@ def get_db():
 @app.on_event("startup")
 def startup():
     database.init_db()
+    db = SessionLocal()
+    try:
+        admin_exists = db.query(User).filter(User.role == "Admin").first()
+        if not admin_exists:
+            print("🚀 No Admin found in PostgreSQL. Seeding default Admin...")
+            from auth import get_password_hash
+            admin = User(
+                username="admin",
+                email="kush85114@gmail.com",
+                hashed_password=get_password_hash("admin123"), # You can change this
+                role="Admin"
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Default Admin created: admin / admin123")
+    except Exception as e:
+        print(f"❌ Seeding error: {e}")
+    finally:
+        db.close()
 
 # Auth Dependencies
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
