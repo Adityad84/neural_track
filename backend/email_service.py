@@ -160,20 +160,18 @@ def send_alert(defect_data, recipient_email=None, station_name=None):
         print(f"⚠ Image file not found or invalid: {image_path} (Resolved to: {physical_path})")
 
     try:
-        print(f"Attempting to send email to {recipient_email}...")
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=20) as smtp:
-            smtp.ehlo()  
-            smtp.starttls()  
-            smtp.ehlo()  
-            
+        print(f"DEBUG: Attempting to resolve smtp.gmail.com...")
+        addr_info = socket.getaddrinfo('smtp.gmail.com', 587, socket.AF_INET)
+        ipv4_address = addr_info[0][4][0]
+        print(f"DEBUG: Resolved to IPv4: {ipv4_address}")
+        with smtplib.SMTP(ipv4_address, 587, timeout=30) as smtp:
+            smtp.set_debuglevel(1)
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
             smtp.login(sender_email, sender_password)
             smtp.send_message(msg)
-            
         print(f"✓ Alert email sent successfully to {recipient_email}")
-    except socket.gaierror:
-        print("✗ DNS Error: Could not resolve smtp.gmail.com")
-    except smtplib.SMTPAuthenticationError:
-        print("✗ Login Error: Check if your App Password is correct")
     except Exception as e:
         print(f"✗ Failed to send email: {e}")
-
+        print("Note: If you still see 'Network unreachable', it means Render is blocking your SMTP ports.")
