@@ -7,7 +7,7 @@ venv/
 .venv/
 env/
 
-# Distribution
+# Distributions
 dist/
 build/
 

@@ -33,6 +33,7 @@ current_lat = None
 current_lon = None
 location_initialized = False
 
+# Location Functions
 def get_actual_location():
     """Gets actual GPS location using IP geolocation."""
     if not GEOCODER_AVAILABLE:

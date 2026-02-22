@@ -51,7 +51,7 @@ Neural Track is a comprehensive railway safety system that combines:
    - **AI Analysis**: Groq API (Llama 3.3) for defect reasoning and resolution protocols
    - **Confidence Threshold**: 70% for defect classification
 
-## 🚀 Features
+### 🚀 Features
 
 ### Core Features
 - ✅ Real-time defect detection and monitoring

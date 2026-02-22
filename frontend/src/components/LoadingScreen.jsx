@@ -7,7 +7,7 @@ const RAILWAY_FACTS = [
     "India's longest railway tunnel spans 11.2 km in Jammu and Kashmir.",
     "Indian Railways operates over 12,000 trains daily across the nation."
 ];
-
+//LoadingScreen Component
 const LoadingScreen = ({ onFinished }) => {
     const [factIndex, setFactIndex] = useState(0);
     const [progress, setProgress] = useState(0);
